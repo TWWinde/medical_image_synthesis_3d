@@ -413,7 +413,7 @@ class SamePadConv3d(nn.Module):
         # assumes that the input shape is divisible by stride
         total_pad = tuple([k - s for k, s in zip(kernel_size, stride)])
         pad_input = []
-        for p in total_pad[::-1]:  # reverse since F.pad starts from last dim
+        for p in total_pad[::-1]:  # reverse since F.pad starts from last dim, step = -1
             pad_input.append((p // 2 + p % 2, p // 2))
         pad_input = sum(pad_input, tuple())
         self.pad_input = pad_input

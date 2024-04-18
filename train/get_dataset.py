@@ -1,4 +1,4 @@
-from dataset import MRNetDataset, BRATSDataset, ADNIDataset, DUKEDataset, LIDCDataset, DEFAULTDataset
+from dataset import MRNetDataset, BRATSDataset, ADNIDataset, DUKEDataset, LIDCDataset, DEFAULTDataset, SynthRAD2023Dataset
 from torch.utils.data import WeightedRandomSampler
 
 
@@ -41,6 +41,12 @@ def get_dataset(cfg):
         return train_dataset, val_dataset, sampler
     if cfg.dataset.name == 'DEFAULT':
         train_dataset = DEFAULTDataset(
+            root_dir=cfg.dataset.root_dir)
+        val_dataset = DEFAULTDataset(
+            root_dir=cfg.dataset.root_dir)
+        sampler = None
+    if cfg.dataset.name == 'SynthRAD2023':
+        train_dataset = SynthRAD2023Dataset(
             root_dir=cfg.dataset.root_dir)
         val_dataset = DEFAULTDataset(
             root_dir=cfg.dataset.root_dir)

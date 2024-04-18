@@ -27,7 +27,7 @@ class SynthRAD2023Dataset(Dataset):
     def get_data_files(self):
         subfolder_names = os.listdir(self.root_dir)
         folder_names = [os.path.join(
-            self.root_dir, subfolder, 'Dyn_0.nii.gz') for subfolder in subfolder_names]
+            self.root_dir, subfolder, 'mr.nii.gz') for subfolder in subfolder_names]
 
         return folder_names
 

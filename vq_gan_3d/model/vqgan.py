@@ -406,7 +406,7 @@ class SamePadConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, bias=True, padding_type='replicate'):
         super().__init__()
         if isinstance(kernel_size, int):
-            kernel_size = (kernel_size,) * 3
+            kernel_size = (kernel_size,) * 3   # (kernel_size, kernel_size, kernel_size)
         if isinstance(stride, int):
             stride = (stride,) * 3
 

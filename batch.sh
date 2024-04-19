@@ -23,7 +23,7 @@ module load cuda
 # Run your python code
 
 #experiment_1 train VQ-GAN
-python train/train_vqgan.py dataset=SynthRAD2023 \
+PL_TORCH_DISTRIBUTED_BACKEND=gloo python train/train_vqgan.py dataset=SynthRAD2023 \
 dataset.root_dir= /misc/data/private/autoPET/Task1/ model=vq_gan_3d model.gpus=1 \
 model.default_root_dir_postfix='flair' model.precision=16 model.embedding_dim=8 \
 model.n_hiddens=16 model.downsample=[2,2,2] model.num_workers=32 model.gradient_clip_val=1.0 \

@@ -1,3 +1,6 @@
+import os
+new_main_dir = '/misc/no_backups/s1449/medical_image_synthesis_3d'
+os.chdir(new_main_dir)
 import sys
 sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
 for i in sys.path:

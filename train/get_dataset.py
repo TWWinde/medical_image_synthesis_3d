@@ -1,8 +1,7 @@
-import os
-new_main_dir = '/misc/no_backups/s1449/medical_image_synthesis_3d'
-os.chdir(new_main_dir)
+
 import sys
 sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
+sys.path.append('/misc/no_backups/s1449')
 for i in sys.path:
     print(i)
 from medical_image_synthesis_3d.dataset import MRNetDataset, BRATSDataset, ADNIDataset, DUKEDataset, LIDCDataset, DEFAULTDataset, SynthRAD2023Dataset

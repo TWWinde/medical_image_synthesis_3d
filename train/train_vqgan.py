@@ -1,10 +1,11 @@
 "Adapted from https://github.com/SongweiGe/TATS"
-
+import sys
+sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
-#from ddpm.diffusion import default
+# from ddpm.diffusion import default
 from vq_gan_3d.model import VQGAN
 from train.callbacks import ImageLogger, VideoLogger
 from train.get_dataset import get_dataset
@@ -26,21 +27,22 @@ def run(cfg: DictConfig):
     bs, base_lr, ngpu, accumulate = cfg.model.batch_size, cfg.model.lr, cfg.model.gpus, cfg.model.accumulate_grad_batches
 
     with open_dict(cfg):
-        cfg.model.lr = accumulate * (ngpu/8.) * (bs/4.) * base_lr
+        cfg.model.lr = accumulate * (ngpu / 8.) * (bs / 4.) * base_lr
         cfg.model.default_root_dir = os.path.join(
             cfg.model.default_root_dir, cfg.dataset.name, cfg.model.default_root_dir_postfix)
-    print("Setting learning rate to {:.2e} = {} (accumulate_grad_batches) * {} (num_gpus/8) * {} (batchsize/4) * {:.2e} (base_lr)".format(
-        cfg.model.lr, accumulate, ngpu/8, bs/4, base_lr))
+    print(
+        "Setting learning rate to {:.2e} = {} (accumulate_grad_batches) * {} (num_gpus/8) * {} (batchsize/4) * {:.2e} (base_lr)".format(
+            cfg.model.lr, accumulate, ngpu / 8, bs / 4, base_lr))
 
     model = VQGAN(cfg)
 
     callbacks = []
     callbacks.append(ModelCheckpoint(monitor='val/recon_loss',
-                     save_top_k=3, mode='min', filename='latest_checkpoint'))
+                                     save_top_k=3, mode='min', filename='latest_checkpoint'))
     callbacks.append(ModelCheckpoint(every_n_train_steps=3000,
-                     save_top_k=-1, filename='{epoch}-{step}-{train/recon_loss:.2f}'))
+                                     save_top_k=-1, filename='{epoch}-{step}-{train/recon_loss:.2f}'))
     callbacks.append(ModelCheckpoint(every_n_train_steps=10000, save_top_k=-1,
-                     filename='{epoch}-{step}-10000-{train/recon_loss:.2f}'))
+                                     filename='{epoch}-{step}-10000-{train/recon_loss:.2f}'))
     callbacks.append(ImageLogger(
         batch_frequency=750, max_images=4, clamp=True))
     callbacks.append(VideoLogger(

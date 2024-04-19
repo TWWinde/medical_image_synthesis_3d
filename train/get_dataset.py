@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
 from dataset import MRNetDataset, BRATSDataset, ADNIDataset, DUKEDataset, LIDCDataset, DEFAULTDataset, SynthRAD2023Dataset
 from torch.utils.data import WeightedRandomSampler
 

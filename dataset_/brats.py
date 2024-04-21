@@ -6,7 +6,7 @@ import torch
 from torch.utils.data.dataset import Dataset
 import os
 from skimage.transform import resize
-from nilearn import surface
+#from nilearn import surface
 import nibabel as nib
 from skimage import exposure
 import argparse

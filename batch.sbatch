@@ -10,7 +10,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=student
 #SBATCH --gpus=1
-#SBATCH --time 31-0
+#SBATCH --time 0-01:00:00
 #SBATCH --nodelist=node-gpu-01
 #SBATCH --error=job.%J.%x.err
 #SBATCH --output=job.%J.%x.out

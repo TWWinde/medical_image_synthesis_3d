@@ -7,7 +7,7 @@
 ####
 
 #SBATCH --job-name=VQ-GAN
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --partition=student
 #SBATCH --gpus=1
 #SBATCH --time 31-0

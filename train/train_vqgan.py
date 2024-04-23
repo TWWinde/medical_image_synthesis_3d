@@ -11,7 +11,7 @@ from train.callbacks import ImageLogger, VideoLogger
 from train.get_dataset import get_dataset
 import hydra
 from omegaconf import DictConfig, open_dict
-
+from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
 
 @hydra.main(config_path='../config', config_name='base_cfg', version_base=None)
 def run(cfg: DictConfig):
@@ -74,6 +74,15 @@ def run(cfg: DictConfig):
     accelerator = None
     if cfg.model.gpus > 1:
         accelerator = 'ddp'
+
+    def put_on_multi_gpus(model, opt):
+        if opt.gpu_ids != "-1":
+            gpus = list(map(int, opt.gpu_ids.split(",")))
+            model = DataParallelWithCallback(model, device_ids=gpus).cuda()
+        else:
+            model.module = model
+        assert len(opt.gpu_ids.split(",")) == 0 or opt.batch_size % len(opt.gpu_ids.split(",")) == 0
+        return model
 
     trainer = pl.Trainer(
         gpus=cfg.model.gpus,

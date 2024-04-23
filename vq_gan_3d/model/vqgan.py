@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 
+from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
 from vq_gan_3d.utils import shift_dim, adopt_weight, comp_getattr
 from vq_gan_3d.model.lpips import LPIPS
 from vq_gan_3d.model.codebook import Codebook
@@ -40,49 +41,59 @@ def vanilla_d_loss(logits_real, logits_fake):
     return d_loss
 
 
-class VQGAN(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self.embedding_dim = cfg.model.embedding_dim
-        self.n_codes = cfg.model.n_codes
+def put_on_multi_gpus(model, opt):
+    if opt.gpu_ids != "-1":
+        gpus = list(map(int, opt.gpu_ids.split(",")))
+        model = DataParallelWithCallback(model, device_ids=gpus).cuda()
+    else:
+        model.module = model
+    assert len(opt.gpu_ids.split(",")) == 0 or opt.batch_size % len(opt.gpu_ids.split(",")) == 0
+    return model
 
-        self.encoder = Encoder(cfg.model.n_hiddens, cfg.model.downsample,
-                               cfg.dataset.image_channels, cfg.model.norm_type, cfg.model.padding_type,
-                               cfg.model.num_groups,
+class VQGAN(nn.Module):
+    def __init__(self, opt):
+        super().__init__()
+        self.opt = opt
+        self.opt.downsample = [4, 4, 4]
+        self.embedding_dim = opt.embedding_dim
+        self.n_codes = opt.n_codes
+
+        self.encoder = Encoder(opt.n_hiddens, opt.downsample,
+                               opt.image_channels, opt.norm_type, opt.padding_type,
+                               opt.num_groups,
                                )
         self.decoder = Decoder(
-            cfg.model.n_hiddens, cfg.model.downsample, cfg.dataset.image_channels, cfg.model.norm_type,
-            cfg.model.num_groups)
+            opt.n_hiddens, opt.downsample, opt.image_channels, opt.norm_type,
+            opt.num_groups)
         self.enc_out_ch = self.encoder.out_channels
         self.pre_vq_conv = SamePadConv3d(
-            self.enc_out_ch, cfg.model.embedding_dim, 1, padding_type=cfg.model.padding_type)
+            self.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
         self.post_vq_conv = SamePadConv3d(
-            cfg.model.embedding_dim, self.enc_out_ch, 1)
+            opt.embedding_dim, self.enc_out_ch, 1)
 
-        self.codebook = Codebook(cfg.model.n_codes, cfg.model.embedding_dim,
-                                 no_random_restart=cfg.model.no_random_restart, restart_thres=cfg.model.restart_thres)
+        self.codebook = Codebook(opt.n_codes, opt.embedding_dim,
+                                 no_random_restart=opt.no_random_restart, restart_thres=opt.restart_thres)
 
-        self.gan_feat_weight = cfg.model.gan_feat_weight
+        self.gan_feat_weight = opt.gan_feat_weight
         # TODO: Changed batchnorm from sync to normal
         self.image_discriminator = NLayerDiscriminator(
-            cfg.dataset.image_channels, cfg.model.disc_channels, cfg.model.disc_layers, norm_layer=nn.BatchNorm2d)
+            opt.image_channels, opt.disc_channels, opt.disc_layers, norm_layer=nn.BatchNorm2d)
         self.video_discriminator = NLayerDiscriminator3D(
-            cfg.dataset.image_channels, cfg.model.disc_channels, cfg.model.disc_layers, norm_layer=nn.BatchNorm3d)
+            opt.image_channels, opt.disc_channels, opt.disc_layers, norm_layer=nn.BatchNorm3d)
 
-        if cfg.model.disc_loss_type == 'vanilla':
+        if opt.disc_loss_type == 'vanilla':
             self.disc_loss = vanilla_d_loss
-        elif cfg.model.disc_loss_type == 'hinge':
+        elif opt.disc_loss_type == 'hinge':
             self.disc_loss = hinge_d_loss
 
         self.perceptual_model = LPIPS().eval()
 
-        self.image_gan_weight = cfg.model.image_gan_weight
-        self.video_gan_weight = cfg.model.video_gan_weight
+        self.image_gan_weight = opt.image_gan_weight
+        self.video_gan_weight = opt.video_gan_weight
 
-        self.perceptual_weight = cfg.model.perceptual_weight
+        self.perceptual_weight = opt.perceptual_weight
 
-        self.l1_weight = cfg.model.l1_weight
+        self.l1_weight = opt.model.l1_weight
         self.save_hyperparameters()
 
     def encode(self, x, include_embeddings=False, quantize=True):
@@ -502,7 +513,7 @@ class NLayerDiscriminator(nn.Module):
                 res.append(model(res[-1]))
             return res[-1], res[1:]
         else:
-            return self.model(input), _
+            return self.model(input)
 
 
 class NLayerDiscriminator3D(nn.Module):
@@ -557,4 +568,4 @@ class NLayerDiscriminator3D(nn.Module):
                 res.append(model(res[-1]))
             return res[-1], res[1:]
         else:
-            return self.model(input), _
+            return self.model(input)

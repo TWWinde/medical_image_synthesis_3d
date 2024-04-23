@@ -14,21 +14,22 @@ from omegaconf import DictConfig, open_dict
 from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
 import torch
 import util as utils
+import config_set as config
+# --- read options ---#
 
-
+opt = config.read_arguments(train=True)
 print("nb of gpus: ", torch.cuda.device_count())
+
 # --- create utils ---#
 timer = utils.timer(opt)
 visualizer_losses = utils.losses_saver(opt)
 im_saver = utils.image_saver(opt)
-fid_computer = fid_pytorch(opt, dataloader_val)
-metrics_computer = metrics(opt, dataloader_val)
 
 
-def run(cfg: DictConfig):
-    pl.seed_everything(cfg.model.seed)
 
-    train_dataset, val_dataset, sampler = get_dataset(cfg)
+def run(opt):
+
+    train_dataset, val_dataset, sampler = get_dataset(opt)
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=cfg.model.batch_size,
                                   num_workers=cfg.model.num_workers, sampler=sampler)
     val_dataloader = DataLoader(val_dataset, batch_size=cfg.model.batch_size,
@@ -86,14 +87,6 @@ def run(cfg: DictConfig):
     if cfg.model.gpus > 1:
         accelerator = 'ddp'
 
-    def put_on_multi_gpus(model, opt):
-        if opt.gpu_ids != "-1":
-            gpus = list(map(int, opt.gpu_ids.split(",")))
-            model = DataParallelWithCallback(model, device_ids=gpus).cuda()
-        else:
-            model.module = model
-        assert len(opt.gpu_ids.split(",")) == 0 or opt.batch_size % len(opt.gpu_ids.split(",")) == 0
-        return model
 
     trainer = pl.Trainer(
         gpus=2,#cfg.model.gpus,

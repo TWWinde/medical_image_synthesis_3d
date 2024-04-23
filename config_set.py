@@ -25,20 +25,39 @@ def read_arguments(train=True):
 
 
 def add_all_arguments(parser, train):
-    #--- general options ---
+    #--- train VQ-GAN---
     parser.add_argument('--name', type=str, default='label2mr', help='name of the experiment. It decides where to store samples and models')
     parser.add_argument('--seed', type=int, default=42, help='random seed')
     parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
-    parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
-    parser.add_argument('--no_spectral_norm', action='store_true', help='this option deactivates spectral norm in all layers')
+    parser.add_argument('--num_workers', type=int, default=30, help='random seed')
     parser.add_argument('--batch_size', type=int, default=2, help='input batch size')
-    parser.add_argument('--dataroot', type=str, default='/misc/data/private/autoPET/data_nnunet', help='path to dataset root')
+    parser.add_argument('--root_dir', type=str, default='/misc/data/private/autoPET/Task1/pelvis/', help='path to dataset root')
     parser.add_argument('--dataset_mode', type=str, default='ct2mri', help='this option indicates which dataset should be loaded')
     parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation')
     parser.add_argument('--no_netDu', action='store_true', help='if specified, no undconditional discriminator')
     parser.add_argument('--single_image', action='store_true', help='if specified, only train single image')
+    parser.add_argument('--embedding_dim', type=int, default=256, help='if specified, only train single image')
+    parser.add_argument('--n_codes', type=int, default=2048, help='if specified, only train single image')
+    parser.add_argument('--n_hiddens', type=int, default=240, help='if specified, only train single image')
+    parser.add_argument('--lr', type=float, default=0.0003, help='if specified, only train single image')
+    parser.add_argument('--disc_channels', type=int, default=64, help='if specified, only train single image')
+    parser.add_argument('--disc_layers', type=int, default=3, help='if specified, only train single image')
+    parser.add_argument('--discriminator_iter_start', type=int, default=50000, help='if specified, only train single image')
+    parser.add_argument('--disc_loss_type', type=str, default='hinge', help='name of the experiment.')
+    parser.add_argument('--image_gan_weight', type=int, default=1.0, help='if specified, only train single image')
+    parser.add_argument('--video_gan_weight', type=int, default=1.0, help='if specified, only train single image')
+    parser.add_argument('--gan_feat_weight', type=int, default=0.0, help='if specified, only train single image')
+    parser.add_argument('--l1_weight', type=int, default=4.0, help='if specified, only train single image')
+    parser.add_argument('--perceptual_weight', type=int, default=0.0, help='if specified, only train single image')
+    parser.add_argument('--restart_thres', type=int, default=1.0, help='if specified, only train single image')
+    parser.add_argument('--norm_type', type=str, default='group', help='name of the experiment.')
+    parser.add_argument('--padding_type', type=str, default='replicate', help='name of the experiment.')
+    parser.add_argument('--num_groups', type=int, default=32, help='if specified, only train single image')
+    parser.add_argument('--i3d_feat', action='store_true', help='if specified, only train single image')
+    parser.add_argument('--no_random_restart', action='store_true', help='if specified, only train single image')
+    parser.add_argument('--image_channels', type=int, default=1.0, help='if specified, only train single image')
 
-    # for generator
+
     parser.add_argument('--num_res_blocks', type=int, default=6, help='number of residual blocks in G and D')
     parser.add_argument('--channels_G', type=int, default=64, help='# of gen filters in first conv layer in generator')
     parser.add_argument('--param_free_norm', type=str, default='syncbatch', help='which norm to use in generator before SPADE')

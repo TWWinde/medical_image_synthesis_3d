@@ -12,8 +12,19 @@ from train.get_dataset import get_dataset
 import hydra
 from omegaconf import DictConfig, open_dict
 from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
+import torch
+import util as utils
 
-@hydra.main(config_path='../config', config_name='base_cfg', version_base=None)
+
+print("nb of gpus: ", torch.cuda.device_count())
+# --- create utils ---#
+timer = utils.timer(opt)
+visualizer_losses = utils.losses_saver(opt)
+im_saver = utils.image_saver(opt)
+fid_computer = fid_pytorch(opt, dataloader_val)
+metrics_computer = metrics(opt, dataloader_val)
+
+
 def run(cfg: DictConfig):
     pl.seed_everything(cfg.model.seed)
 

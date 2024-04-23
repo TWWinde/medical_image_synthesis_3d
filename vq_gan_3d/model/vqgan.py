@@ -4,8 +4,6 @@
 import math
 import argparse
 import numpy as np
-import pickle as pkl
-import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -42,7 +40,7 @@ def vanilla_d_loss(logits_real, logits_fake):
     return d_loss
 
 
-class VQGAN(pl.LightningModule):
+class VQGAN(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
@@ -106,8 +104,8 @@ class VQGAN(pl.LightningModule):
         return self.decoder(h)
 
     def forward(self, x, optimizer_idx=None, log_image=False):
-        B, C, T, H, W = x.shape
 
+        B, C, T, H, W = x.shape
         z = self.pre_vq_conv(self.encoder(x))
         vq_output = self.codebook(z)
         x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
@@ -126,7 +124,6 @@ class VQGAN(pl.LightningModule):
 
         if optimizer_idx == 0:
             # Autoencoder - train the "generator"
-
             # Perceptual loss
             perceptual_loss = 0
             if self.perceptual_weight > 0:

@@ -56,7 +56,7 @@ def add_all_arguments(parser, train):
     parser.add_argument('--num_groups', type=int, default=32, help='if specified, only train single image')
     parser.add_argument('--i3d_feat', action='store_true', help='if specified, only train single image')
     parser.add_argument('--no_random_restart', action='store_true', help='if specified, only train single image')
-    parser.add_argument('--image_channel', type=int, default=1.0, help='if specified, only train single image')
+    parser.add_argument('--image_channel', type=int, default=1, help='if specified, only train single image')
     parser.add_argument('--num_res_blocks', type=int, default=6, help='number of residual blocks in G and D')
     parser.add_argument('--channels_G', type=int, default=64, help='# of gen filters in first conv layer in generator')
     parser.add_argument('--param_free_norm', type=str, default='syncbatch', help='which norm to use in generator before SPADE')

@@ -70,9 +70,9 @@ class VQGAN(nn.Module):
         self.gan_feat_weight = self.opt.gan_feat_weight
         # TODO: Changed batchnorm from sync to normal
         self.image_discriminator = NLayerDiscriminator(
-            self.opt.image_channels, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm2d)
+            self.opt.image_channel, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm2d)
         self.video_discriminator = NLayerDiscriminator3D(
-            self.opt.image_channels, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm3d)
+            self.opt.image_channel, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm3d)
 
         if self.opt.disc_loss_type == 'vanilla':
             self.disc_loss = vanilla_d_loss

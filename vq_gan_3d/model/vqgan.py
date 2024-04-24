@@ -59,34 +59,34 @@ class VQGAN(nn.Module):
         self.opt = opt
         self.opt.downsample = [4, 4, 4]
         self.embedding_dim = opt.embedding_dim
-        self.n_codes = opt.n_codes
-        self.opt.enc_out_ch = opt.n_hiddens * 2 ** (max(self.opt.downsample))
+        self.n_codes = self.opt.n_codes
+        self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample))
         self.encoder = Encoder(opt)
         self.decoder = Decoder(opt)
 
-        self.codebook = Codebook(opt.n_codes, opt.embedding_dim,
-                                 no_random_restart=opt.no_random_restart, restart_thres=opt.restart_thres)
+        self.codebook = Codebook(self.opt.n_codes, self.opt.embedding_dim,
+                                 no_random_restart=self.opt.no_random_restart, restart_thres=self.opt.restart_thres)
 
-        self.gan_feat_weight = opt.gan_feat_weight
+        self.gan_feat_weight = self.opt.gan_feat_weight
         # TODO: Changed batchnorm from sync to normal
         self.image_discriminator = NLayerDiscriminator(
-            opt.image_channels, opt.disc_channels, opt.disc_layers, norm_layer=nn.BatchNorm2d)
+            self.opt.image_channels, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm2d)
         self.video_discriminator = NLayerDiscriminator3D(
-            opt.image_channels, opt.disc_channels, opt.disc_layers, norm_layer=nn.BatchNorm3d)
+            self.opt.image_channels, self.opt.disc_channels, self.opt.disc_layers, norm_layer=nn.BatchNorm3d)
 
-        if opt.disc_loss_type == 'vanilla':
+        if self.opt.disc_loss_type == 'vanilla':
             self.disc_loss = vanilla_d_loss
-        elif opt.disc_loss_type == 'hinge':
+        elif self.opt.disc_loss_type == 'hinge':
             self.disc_loss = hinge_d_loss
 
         self.perceptual_model = LPIPS().eval()
 
-        self.image_gan_weight = opt.image_gan_weight
-        self.video_gan_weight = opt.video_gan_weight
+        self.image_gan_weight = self.opt.image_gan_weight
+        self.video_gan_weight = self.opt.video_gan_weight
 
-        self.perceptual_weight = opt.perceptual_weight
+        self.perceptual_weight = self.opt.perceptual_weight
 
-        self.l1_weight = opt.model.l1_weight
+        self.l1_weight = self.opt.model.l1_weight
         self.save_hyperparameters()
         self.load_checkpoints()
 
@@ -331,28 +331,28 @@ class Encoder(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        n_times_downsample = np.array([int(math.log2(d)) for d in opt.downsample])
+        n_times_downsample = np.array([int(math.log2(d)) for d in self.opt.downsample])
         self.conv_blocks = nn.ModuleList()
-        max_ds = n_times_downsample.max()
+        max_ds = max(n_times_downsample)  # .max()
         self.pre_vq_conv = SamePadConv3d(
-            opt.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
+            self.opt.enc_out_ch, self.opt.embedding_dim, 1, padding_type=self.opt.padding_type)
         self.conv_first = SamePadConv3d(
-            opt.image_channel, opt.n_hiddens, kernel_size=3, padding_type=opt.padding_type)
+            self.opt.image_channel, self.opt.n_hiddens, kernel_size=3, padding_type=self.opt.padding_type)
 
         for i in range(max_ds):
             block = nn.Module()
-            in_channels = opt.n_hiddens * 2 ** i
-            out_channels = opt.n_hiddens * 2 ** (i + 1)
+            in_channels = self.opt.n_hiddens * 2 ** i
+            out_channels = self.opt.n_hiddens * 2 ** (i + 1)
             stride = tuple([2 if d > 0 else 1 for d in n_times_downsample])
             block.down = SamePadConv3d(
-                in_channels, out_channels, 4, stride=stride, padding_type=opt.padding_type)
+                in_channels, out_channels, 4, stride=stride, padding_type=self.opt.padding_type)
             block.res = ResBlock(
-                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
+                out_channels, out_channels, norm_type=self.opt.norm_type, num_groups=self.opt.num_groups)
             self.conv_blocks.append(block)
             n_times_downsample -= 1
 
         self.final_block = nn.Sequential(
-            Normalize(out_channels, opt.norm_type, num_groups=opt.num_groups),
+            Normalize(out_channels, self.opt.norm_type, num_groups=self.opt.num_groups),
             SiLU()
         )
 
@@ -372,34 +372,34 @@ class Decoder(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt= opt
-        n_times_upsample = np.array([int(math.log2(d)) for d in opt.upsample])
-        max_us = n_times_upsample.max()
+        n_times_upsample = np.array([int(math.log2(d)) for d in self.opt.upsample])
+        max_us = max(n_times_upsample)  # .max()
 
-        in_channels = opt.n_hiddens * 2 ** max_us
+        in_channels = self.opt.n_hiddens * 2 ** max_us
         self.final_block = nn.Sequential(
-            Normalize(in_channels, opt.norm_type, num_groups=opt.num_groups),
+            Normalize(in_channels, self.opt.norm_type, num_groups=self.opt.num_groups),
             SiLU()
         )
-        self.enc_out_ch = opt.enc_out_ch
+        self.enc_out_ch = self.opt.enc_out_ch
         self.conv_blocks = nn.ModuleList()
         for i in range(max_us):
             block = nn.Module()
-            in_channels = in_channels if i == 0 else opt.n_hiddens * 2 ** (max_us - i + 1)
-            out_channels = opt.n_hiddens * 2 ** (max_us - i)
+            in_channels = in_channels if i == 0 else self.opt.n_hiddens * 2 ** (max_us - i + 1)
+            out_channels = self.opt.n_hiddens * 2 ** (max_us - i)
             us = tuple([2 if d > 0 else 1 for d in n_times_upsample])
             block.up = SamePadConvTranspose3d(
                 in_channels, out_channels, 4, stride=us)
             block.res1 = ResBlock(
-                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
+                out_channels, out_channels, norm_type=self.opt.norm_type, num_groups=self.opt.num_groups)
             block.res2 = ResBlock(
-                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
+                out_channels, out_channels, norm_type=self.opt.norm_type, num_groups=self.opt.num_groups)
             self.conv_blocks.append(block)
             n_times_upsample -= 1
 
         self.post_vq_conv = SamePadConv3d(
-            opt.embedding_dim, self.enc_out_ch, 1)
+            self.opt.embedding_dim, self.enc_out_ch, 1)
         self.conv_last = SamePadConv3d(
-            out_channels, opt.image_channel, kernel_size=3)
+            out_channels, self.opt.image_channel, kernel_size=3)
 
     def forward(self, x):
         h = self.post_vq_conv(x)

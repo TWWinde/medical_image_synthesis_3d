@@ -88,7 +88,6 @@ class VQGAN(nn.Module):
         self.perceptual_weight = self.opt.perceptual_weight
 
         self.l1_weight = self.opt.l1_weight
-        self.save_hyperparameters()
         self.load_checkpoints()
 
     def encode(self, x, include_embeddings=False, quantize=True):

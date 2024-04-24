@@ -4,7 +4,6 @@ import numpy as np
 import random
 import time
 import os
-import models.models as models
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -17,7 +16,7 @@ def fix_seed(seed):
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
 
-ƒ
+
 def get_start_iters(start_iter, dataset_size):
     if start_iter == 0:
         return 0, 0
@@ -26,42 +25,14 @@ def get_start_iters(start_iter, dataset_size):
     return start_epoch, start_iter
 
 
-class seg_saver():
-    def __init__(self, opt):
-        path = os.path.join(opt.results_dir, opt.name)
-        self.path_seg_real = os.path.join(path, "seg_real")
-        self.path_seg_fake = os.path.join(path, "seg_fake")
-        self.path_to_save = {"seg_real": self.path_seg_real, "seg_fake": self.path_seg_fake}
-        os.makedirs(self.path_seg_real, exist_ok=True)
-        os.makedirs(self.path_seg_fake, exist_ok=True)
-        self.num_cl = opt.label_nc + 2
-
-    def __call__(self, seg_real, seg_fake, name):
-        for i in range(len(seg_real)):
-            #print('real', seg_real[i].shape) #torch.Size([39, 256, 256])
-            #print('fake', seg_fake[i].shape)
-            im = tens_to_lab_color(seg_real[i], self.num_cl)
-            self.save_im(im, "seg_real", name[i])
-            im = tens_to_lab_color(seg_fake[i], self.num_cl)
-            self.save_im(im, "seg_fake", name[i])
-
-    def save_im(self, im, mode, name):
-        im = Image.fromarray(im.astype(np.uint8))
-        #print(name.split("/")[-1])
-        im.save(os.path.join(self.path_to_save[mode], name.split("/")[-1]).replace('.jpg', '.png'))
-
 class results_saver():
     def __init__(self, opt):
         path = os.path.join(opt.results_dir, opt.name)
-        self.path_label = os.path.join(path, "label")
-        self.path_image = os.path.join(path, "image")
-        self.path_mae = os.path.join(path, "mae")
-        self.path_to_save = {"label": self.path_label, "image": self.path_image, "mae": self.path_mae}
+        self.path_label = os.path.join(path, "image_real")
+        self.path_image = os.path.join(path, "image_reco")
+        self.path_to_save = {"image_real": self.path_label, "image_reco": self.path_image}
         os.makedirs(self.path_label, exist_ok=True)
         os.makedirs(self.path_image, exist_ok=True)
-        os.makedirs(self.path_mae, exist_ok=True)
-        self.mmae = []
-        self.num_cl = opt.label_nc + 2
 
     def __call__(self, label, generated, mr_image, name):
         assert len(label) == len(generated)
@@ -78,16 +49,6 @@ class results_saver():
 
         print('mean MAE:', sum(self.mmae)/len(self.mmae))
 
-    def calculate_mae(self, image1, image2):
-
-        absolute_error = np.abs(image1 - image2)
-        mae = np.mean(absolute_error)
-
-        heatmap_image = cv2.applyColorMap(absolute_error.astype(np.uint8), cv2.COLORMAP_JET)
-
-        heatmap_array = cv2.cvtColor(heatmap_image, cv2.COLOR_BGR2RGB)
-
-        return heatmap_array, mae
     def save_im(self, im, mode, name):
         im = Image.fromarray(im.astype(np.uint8))
         #print(name.split("/")[-1])
@@ -217,13 +178,12 @@ class timer():
 
 class losses_saver():
     def __init__(self, opt):
-        self.name_list = ["loss_G_seg",
-                          "loss_G_GAN",
-                          "loss_G_mask",
-                          "loss_S_fake",
-                          "loss_Du_fake",
-                          "loss_Du_real",
-                          "loss_Du_regularize",
+        self.name_list = ["recon_loss",
+                          'aeloss',
+                          'perceptual_loss',
+                          'gan_feat_loss',
+                          'd_image_loss',
+                          'd_video_loss'
                           ]
         self.opt = opt
         self.freq_smooth_loss = opt.freq_smooth_loss
@@ -278,98 +238,59 @@ class losses_saver():
         plt.close(fig)
 
 
-def update_EMA(model, cur_iter, dataloader, opt, force_run_stats=False):
-    # update weights based on new generator weights
-    with torch.no_grad():
-        for key in model.module.netEMA.state_dict():
-            model.module.netEMA.state_dict()[key].data.copy_(
-                model.module.netEMA.state_dict()[key].data * opt.EMA_decay +
-                model.module.netG.state_dict()[key].data   * (1 - opt.EMA_decay)
-            )
-    # collect running stats for batchnorm before FID computation, image or network saving
-    condition_run_stats = (force_run_stats or
-                           cur_iter % opt.freq_print == 0 or
-                           cur_iter % opt.freq_fid == 0 or
-                           cur_iter % opt.freq_save_ckpt == 0 or
-                           cur_iter % opt.freq_save_latest == 0
-                           )
-    if condition_run_stats:
-        with torch.no_grad():
-            num_upd = 0
-            for i, data_i in enumerate(dataloader):
-                image, label = models.preprocess_input(opt, data_i)
-                fake = model.module.netEMA(label)
-                num_upd += 1
-                if num_upd > 50:
-                    break
-
-
 def save_networks(opt, cur_iter, model, latest=False, best=False):
     path = os.path.join(opt.checkpoints_dir, opt.name, "models")
     os.makedirs(path, exist_ok=True)
     if latest:
-        torch.save(model.module.netG.state_dict(), path+'/%s_G.pth' % ("latest"))
         try:
-            torch.save(model.module.netD.state_dict(), path+'/%s_D.pth' % ("latest"))
+            torch.save(model.module.encoder.state_dict(), path + '/%s_Encoder.pth' % ("latest"))
         except:
-            pass
+            print('fail to save encoder')
+
         try:
-            torch.save(model.module.netS.state_dict(), path+'/%s_S.pth' % ("latest"))
+            torch.save(model.module.decoder.state_dict(), path+'/%s_Decoder.pth' % ("latest"))
         except:
-            pass
+            print('fail to save ')
+
         try:
-            torch.save(model.module.netDu_image.state_dict(), path + '/%s_Du_image.pth' % ("latest"))
-            torch.save(model.module.netDu_label.state_dict(), path + '/%s_Du_label.pth' % ("latest"))
+            torch.save(model.module.codebook.state_dict(), path+'/%s_Codebook.pth' % ("latest"))
+
         except:
-            pass
+            print('fail to save codebook ')
+
         try:
-            torch.save(model.module.netDu.state_dict(), path + '/%s_Du.pth' % ("latest"))
+            torch.save(model.module.image_discriminator.state_dict(), path + '/%s_Image_D.pth' % ("latest"))
+            torch.save(model.module.video_discriminator.state_dict(), path + '/%s_Video_D.pth' % ("latest"))
         except:
-            pass
-        if not opt.no_EMA:
-            torch.save(model.module.netEMA.state_dict(), path+'/%s_EMA.pth' % ("latest"))
+            print('fail to save discriminator')
+
         with open(os.path.join(opt.checkpoints_dir, opt.name)+"/latest_iter.txt", "w") as f:
             f.write(str(cur_iter))
     elif best:
-        torch.save(model.module.netG.state_dict(), path+'/%s_G.pth' % ("best"))
         try:
-            torch.save(model.module.netD.state_dict(), path+'/%s_D.pth' % ("best"))
+            torch.save(model.module.encoder.state_dict(), path + '/%s_Encoder.pth' % ("best"))
         except:
-            pass
+            print('fail to save encoder')
+
         try:
-            torch.save(model.module.netS.state_dict(), path + '/%s_S.pth' % ("best"))
+            torch.save(model.module.decoder.state_dict(), path + '/%s_Decoder.pth' % ("best"))
         except:
-            pass
+            print('fail to save ')
+
         try:
-            torch.save(model.module.netDu_image.state_dict(), path + '/%s_Du_image.pth' % ("best"))
-            torch.save(model.module.netDu_label.state_dict(), path + '/%s_Du_label.pth' % ("best"))
+            torch.save(model.module.codebook.state_dict(), path + '/%s_Codebook.pth' % ("best"))
+
         except:
-            pass
+            print('fail to save codebook ')
+
         try:
-            torch.save(model.module.netDu.state_dict(), path + '/%s_Du.pth' % ("best"))
+            torch.save(model.module.image_discriminator.state_dict(), path + '/%s_image_D.pth' % ("best"))
+            torch.save(model.module.video_discriminator.state_dict(), path + '/%s_video_D.pth' % ("best"))
         except:
-            pass
-        if not opt.no_EMA:
-            torch.save(model.module.netEMA.state_dict(), path+'/%s_EMA.pth' % ("best"))
+            print('fail to save discriminator')
+
         with open(os.path.join(opt.checkpoints_dir, opt.name)+"/best_iter.txt", "w") as f:
             f.write(str(cur_iter))
-    else:
-        torch.save(model.module.netG.state_dict(), path+'/%d_G.pth' % (cur_iter))
-        try:
-            torch.save(model.module.netD.state_dict(), path+'/%d_D.pth' % (cur_iter))
-        except:
-            pass
-        try:
-            torch.save(model.module.netDu_image.state_dict(), path+'/%d_Du_image.pth' % (cur_iter))
-            torch.save(model.module.netDu_label.state_dict(), path+'/%d_Du_label.pth' % (cur_iter))
-        except:
-            pass
-        try:
-            torch.save(model.module.netDu.state_dict(), path + '/%d_Du.pth' % (cur_iter))
-        except:
-            pass
-        if not opt.no_EMA:
-            torch.save(model.module.netEMA.state_dict(), path+'/%d_EMA.pth' % (cur_iter))
 
 
 class image_saver():
@@ -382,25 +303,14 @@ class image_saver():
         self.num_cl = opt.label_nc + 2
         os.makedirs(self.path, exist_ok=True)
 
-    def visualize_batch(self, model, image, label, cur_iter):
-        self.save_images(label, "label", cur_iter, is_label=True)
+    def visualize_batch(self, image, recon, cur_iter):
         self.save_images(image, "real", cur_iter)
-        with torch.no_grad():
-            model.eval()
-            fake = model.module.netG(label)
-            self.save_images(fake, "fake", cur_iter)
-            model.train()
-            if not self.opt.no_EMA:
-                model.eval()
-                fake = model.module.netEMA(label)
-                self.save_images(fake, "fake_ema", cur_iter)
-                model.train()
+        self.save_images(recon, "recon", cur_iter)
 
     def save_images(self, batch, name, cur_iter, is_label=False):
         fig = plt.figure()
         for i in range(min(self.rows * self.cols, len(batch))):
             if is_label:
-                #im = tens_to_lab(batch[i], self.num_cl)
                 im = tens_to_lab_color(batch[i], self.num_cl)
             else:
                 im = tens_to_im(batch[i])
@@ -435,9 +345,11 @@ def tens_to_lab_color(tens, num_cl):
 # Modified so it complies with the Cityscapes label map colors (fct labelcolormap)
 ###############################################################################
 
+
 def uint82bin(n, count=8):
     """returns the binary of integer n, count refers to amount of bits"""
     return ''.join([str((n >> y) & 1) for y in range(count - 1, -1, -1)])
+
 
 def GreyScale(tens, num_cl):
     cmap = labelcolormap(num_cl)
@@ -452,6 +364,7 @@ def GreyScale(tens, num_cl):
         color_image[1][mask] = label
         color_image[2][mask] = label
     return color_image
+
 
 def Colorize(tens, num_cl):
     cmap = labelcolormap(num_cl)

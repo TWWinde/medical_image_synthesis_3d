@@ -61,18 +61,9 @@ class VQGAN(nn.Module):
         self.embedding_dim = opt.embedding_dim
         self.n_codes = opt.n_codes
 
-        self.encoder = Encoder(opt.n_hiddens, opt.downsample,
-                               opt.image_channels, opt.norm_type, opt.padding_type,
-                               opt.num_groups,
-                               )
-        self.decoder = Decoder(
-            opt.n_hiddens, opt.downsample, opt.image_channels, opt.norm_type,
-            opt.num_groups)
+        self.encoder = Encoder(opt)
+        self.decoder = Decoder(opt)
         self.enc_out_ch = self.encoder.out_channels
-        self.pre_vq_conv = SamePadConv3d(
-            self.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
-        self.post_vq_conv = SamePadConv3d(
-            opt.embedding_dim, self.enc_out_ch, 1)
 
         self.codebook = Codebook(opt.n_codes, opt.embedding_dim,
                                  no_random_restart=opt.no_random_restart, restart_thres=opt.restart_thres)
@@ -98,9 +89,10 @@ class VQGAN(nn.Module):
 
         self.l1_weight = opt.model.l1_weight
         self.save_hyperparameters()
+        self.load_checkpoints()
 
     def encode(self, x, include_embeddings=False, quantize=True):
-        h = self.pre_vq_conv(self.encoder(x))
+        h = self.encoder(x)
         if quantize:
             vq_output = self.codebook(h)
             if include_embeddings:
@@ -114,15 +106,15 @@ class VQGAN(nn.Module):
             vq_output = self.codebook(latent)
             latent = vq_output['encodings']
         h = F.embedding(latent, self.codebook.embeddings)
-        h = self.post_vq_conv(shift_dim(h, -1, 1))
+        h = shift_dim(h, -1, 1)
         return self.decoder(h)
 
     def forward(self, x, mode, log_image=False):
 
         B, C, T, H, W = x.shape
-        z = self.pre_vq_conv(self.encoder(x))
+        z = self.encoder(x)
         vq_output = self.codebook(z)
-        x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
+        x_recon = self.decoder(vq_output['embeddings'])
 
         recon_loss = F.l1_loss(x_recon, x) * self.l1_weight
 
@@ -197,7 +189,7 @@ class VQGAN(nn.Module):
 
             loss_G = recon_loss + aeloss + perceptual_loss + gan_feat_loss
 
-            return loss_G, [recon_loss,  aeloss, perceptual_loss, gan_feat_loss]
+            return loss_G, [recon_loss,  aeloss, perceptual_loss, gan_feat_loss], frames, frames_recon
 
         if mode == 'losses_D':
             # Train discriminator
@@ -231,7 +223,7 @@ class VQGAN(nn.Module):
             self.log("train/discloss", discloss, prog_bar=True,
                      logger=True, on_step=True, on_epoch=True)
 
-            return discloss
+            return discloss, [d_image_loss, d_video_loss]
 
     def training_step(self, batch,  optimizer_idx):
         x = batch['data']
@@ -258,8 +250,8 @@ class VQGAN(nn.Module):
         lr = self.cfg.model.lr
         opt_ae = torch.optim.Adam(list(self.encoder.parameters()) +
                                   list(self.decoder.parameters()) +
-                                  list(self.pre_vq_conv.parameters()) +
-                                  list(self.post_vq_conv.parameters()) +
+                                  #list(self.pre_vq_conv.parameters()) +
+                                  #list(self.post_vq_conv.parameters()) +
                                   list(self.codebook.parameters()),
                                   lr=lr, betas=(0.5, 0.9))
         opt_disc = torch.optim.Adam(list(self.image_discriminator.parameters()) +
@@ -291,31 +283,40 @@ class VQGAN(nn.Module):
     def load_checkpoints(self):
         if self.opt.phase == "test":
             path = os.path.join(self.opt.checkpoints_dir, self.opt.name, "models", "best_")
-            self.encoder.load_state_dict(torch.load(path + "G.pth"))
-            self.decoder.load_state_dict(torch.load(path + "EMA.pth"))
+            self.encoder.load_state_dict(torch.load(path + "Encoder.pth"))
+            self.decoder.load_state_dict(torch.load(path + "Decoder.pth"))
+            self.codebook.load_state_dict(torch.load(path + "codebook.pth"))
+
         elif self.opt.continue_train:
             path = os.path.join(self.opt.checkpoints_dir, self.opt.name, "models", "latest_")
-            print(path + "G.pth")
             try:
-                self.netG.load_state_dict(torch.load(path + "G.pth"))
-                print('Generator successfully loaded')
+                self.encoder.load_state_dict(torch.load(path + "Encoder.pth"))
+                print('Encoder successfully loaded')
             except:
-                print('G.pth not found', path + "G.pth")
+                print('Encoder.pth not found', path + "G.pth")
             try:
-                self.netS.load_state_dict(torch.load(path + "Du.pth"))
-                print('Discriminator successfully loaded')
+                self.decoder.load_state_dict(torch.load(path + "Decoder.pth"))
+                print('Decoder successfully loaded')
             except:
-                print('Du.pth not found')
+                print('Decoder.pth not found', path + "G.pth")
 
-            # self.netG.load_state_dict(torch.load(path + "G.pth"))
-            # self.netS.load_state_dict(torch.load(path + "S.pth"))
-            # self.netDu.load_state_dict(torch.load(path + "Du.pth"))
-            if not self.opt.no_EMA:
-                try:
-                    self.netEMA.load_state_dict(torch.load(path + "EMA.pth"))
-                    print('EMA successfully loaded')
-                except:
-                    print('EMA.pth not found')
+            try:
+                self.codebook.load_state_dict(torch.load(path + "Codebook.pth"))
+                print('Codebook successfully loaded')
+            except:
+                print('Codebook.pth not found', path + "G.pth")
+
+            try:
+                self.image_discriminator.load_state_dict(torch.load(path + "Image_D.pth"))
+                print('image_discriminator successfully loaded')
+            except:
+                print('Image_Discriminator.pth not found', path + "Image_D.pth")
+
+            try:
+                self.video_discriminator.load_state_dict(torch.load(path + "Video_D.pth"))
+                print('video_discriminator successfully loaded')
+            except:
+                print('Video_Discriminator.pth not found', path + "Video_D.pth")
 
 
 def Normalize(in_channels, norm_type='group', num_groups=32):
@@ -327,32 +328,31 @@ def Normalize(in_channels, norm_type='group', num_groups=32):
         return torch.nn.SyncBatchNorm(in_channels)
 
 
-
 class Encoder(nn.Module):
-    def __init__(self, n_hiddens, downsample, image_channel=3, norm_type='group', padding_type='replicate',
-                 num_groups=32):
+    def __init__(self, opt):
         super().__init__()
-        n_times_downsample = np.array([int(math.log2(d)) for d in downsample])
+        n_times_downsample = np.array([int(math.log2(d)) for d in opt.downsample])
         self.conv_blocks = nn.ModuleList()
         max_ds = n_times_downsample.max()
-
+        self.pre_vq_conv = SamePadConv3d(
+            self.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
         self.conv_first = SamePadConv3d(
-            image_channel, n_hiddens, kernel_size=3, padding_type=padding_type)
+            opt.image_channel, opt.n_hiddens, kernel_size=3, padding_type=opt.padding_type)
 
         for i in range(max_ds):
             block = nn.Module()
-            in_channels = n_hiddens * 2 ** i
-            out_channels = n_hiddens * 2 ** (i + 1)
+            in_channels = opt.n_hiddens * 2 ** i
+            out_channels = opt.n_hiddens * 2 ** (i + 1)
             stride = tuple([2 if d > 0 else 1 for d in n_times_downsample])
             block.down = SamePadConv3d(
-                in_channels, out_channels, 4, stride=stride, padding_type=padding_type)
+                in_channels, out_channels, 4, stride=stride, padding_type=opt.padding_type)
             block.res = ResBlock(
-                out_channels, out_channels, norm_type=norm_type, num_groups=num_groups)
+                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
             self.conv_blocks.append(block)
             n_times_downsample -= 1
 
         self.final_block = nn.Sequential(
-            Normalize(out_channels, norm_type, num_groups=num_groups),
+            Normalize(out_channels, opt.norm_type, num_groups=opt.num_groups),
             SiLU()
         )
 
@@ -364,42 +364,46 @@ class Encoder(nn.Module):
             h = block.down(h)
             h = block.res(h)
         h = self.final_block(h)
+        h = self.pre_vq_conv(h)
         return h
 
 
 class Decoder(nn.Module):
-    def __init__(self, n_hiddens, upsample, image_channel, norm_type='group', num_groups=32):
+    def __init__(self, opt):
         super().__init__()
 
-        n_times_upsample = np.array([int(math.log2(d)) for d in upsample])
+        n_times_upsample = np.array([int(math.log2(d)) for d in opt.upsample])
         max_us = n_times_upsample.max()
 
-        in_channels = n_hiddens * 2 ** max_us
+        in_channels = opt.n_hiddens * 2 ** max_us
         self.final_block = nn.Sequential(
-            Normalize(in_channels, norm_type, num_groups=num_groups),
+            Normalize(in_channels, opt.norm_type, num_groups=opt.num_groups),
             SiLU()
         )
 
         self.conv_blocks = nn.ModuleList()
         for i in range(max_us):
             block = nn.Module()
-            in_channels = in_channels if i == 0 else n_hiddens * 2 ** (max_us - i + 1)
-            out_channels = n_hiddens * 2 ** (max_us - i)
+            in_channels = in_channels if i == 0 else opt.n_hiddens * 2 ** (max_us - i + 1)
+            out_channels = opt.n_hiddens * 2 ** (max_us - i)
             us = tuple([2 if d > 0 else 1 for d in n_times_upsample])
             block.up = SamePadConvTranspose3d(
                 in_channels, out_channels, 4, stride=us)
             block.res1 = ResBlock(
-                out_channels, out_channels, norm_type=norm_type, num_groups=num_groups)
+                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
             block.res2 = ResBlock(
-                out_channels, out_channels, norm_type=norm_type, num_groups=num_groups)
+                out_channels, out_channels, norm_type=opt.norm_type, num_groups=opt.num_groups)
             self.conv_blocks.append(block)
             n_times_upsample -= 1
 
+        self.post_vq_conv = SamePadConv3d(
+            opt.embedding_dim, self.enc_out_ch, 1)
         self.conv_last = SamePadConv3d(
-            out_channels, image_channel, kernel_size=3)
+            out_channels, opt.image_channel, kernel_size=3)
 
     def forward(self, x):
-        h = self.final_block(x)
+        h = self.post_vq_conv(x)
+        h = self.final_block(h)
         for i, block in enumerate(self.conv_blocks):
             h = block.up(h)
             h = block.res1(h)

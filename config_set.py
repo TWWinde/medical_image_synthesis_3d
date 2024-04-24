@@ -10,7 +10,6 @@ def read_arguments(train=True):
     parser.add_argument('--phase', type=str, default='train')
     opt = parser.parse_args()
     if train:
-        set_dataset_default_lm(opt, parser)
         if opt.continue_train:
             update_options_from_file(opt, parser)
     opt = parser.parse_args()
@@ -60,7 +59,6 @@ def add_all_arguments(parser, train):
     parser.add_argument('--no_random_restart', action='store_true', help='if specified, only train single image')
     parser.add_argument('--image_channels', type=int, default=1.0, help='if specified, only train single image')
 
-
     parser.add_argument('--num_res_blocks', type=int, default=6, help='number of residual blocks in G and D')
     parser.add_argument('--channels_G', type=int, default=64, help='# of gen filters in first conv layer in generator')
     parser.add_argument('--param_free_norm', type=str, default='syncbatch', help='which norm to use in generator before SPADE')
@@ -87,49 +85,12 @@ def add_all_arguments(parser, train):
         parser.add_argument('--continue_train', action='store_true', help='resume previously interrupted training')
         parser.add_argument('--which_iter', type=str, default='latest', help='which epoch to load when continue_train')
         parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
-        parser.add_argument('--beta1', type=float, default=0.0, help='momentum term of adam')
-        parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')
-        parser.add_argument('--lr_g', type=float, default=0.0001, help='G learning rate, default=0.0001')
-        parser.add_argument('--lr_d', type=float, default=0.0004, help='D learning rate, default=0.0004')
-
-        parser.add_argument('--channels_D', type=int, default=64, help='# of discrim filters in first conv layer in discriminator')
-        parser.add_argument('--add_vgg_loss', action='store_true', help='if specified, add VGG feature matching loss')
-        parser.add_argument('--add_vit_loss', action='store_true', help='if specified, add VIT feature matching loss')
-        parser.add_argument('--add_feat_match', action='store_true', help='if specified, add discriminator feature matching loss, semi-supervised model only')
-        parser.add_argument('--lambda_vgg', type=float, default=10.0, help='weight for VGG loss')
-        parser.add_argument('--add_edge_loss', action='store_true', help='if specified, add edge loss')
-        parser.add_argument('--lambda_edge', type=float, default=1, help='weight for VGG loss')
-        parser.add_argument('--add_mask', action='store_true', help='use mask to improve shape consistence')
-        parser.add_argument('--lambda_mask', type=float, default=0.5, help='weight for mask loss')
-        parser.add_argument('--no_balancing_inloss', action='store_true', default=False, help='if specified, do *not* use class balancing in the loss function')
-        parser.add_argument('--no_labelmix', action='store_true', default=False, help='if specified, do *not* use LabelMix')
-        parser.add_argument('--lambda_labelmix', type=float, default=10.0, help='weight for LabelMix regularization')
-        parser.add_argument('--Du_patch_size',type= int,default = None)
-        parser.add_argument('--netDu',type= str,default = "")
-        parser.add_argument('--results_dir', type=str, default='./results/', help='saves testing results here.')
-        parser.add_argument('--ckpt_iter', type=str, default='best', help='which epoch to load to evaluate a model')
-        parser.add_argument('--bicycle_loss',type=int, default= 0, help='which type of cycle loss to use for backward cycle. 0 for none, 1 for L1, 2 for entropy weighted L1')
-        parser.add_argument('--reg_every',type=int, default= 4, help='period of regularization')
 
     else:
-        parser.add_argument('--results_dir', type=str, default='./results/', help='saves testing results here.')
+        parser.add_argument('--results_dir', type=str, default='/misc/no_backups/s1449/medical_image_synthesis_3d'
+                                                               '/results/', help='saves testing results here.')
         parser.add_argument('--ckpt_iter', type=str, default='best', help='which epoch to load to evaluate a model')
     return parser
-
-
-def set_dataset_default_lm(opt, parser):
-    if opt.dataset_mode == "ade20k":
-        parser.set_defaults(lambda_labelmix=10.0)
-        parser.set_defaults(EMA_decay=0.9999)
-    if opt.dataset_mode == "cityscapes":
-        parser.set_defaults(lr_g=0.0004)
-        parser.set_defaults(lambda_labelmix=5.0)
-        parser.set_defaults(freq_fid=2500)
-        parser.set_defaults(EMA_decay=0.999)
-    if opt.dataset_mode == "coco":
-        parser.set_defaults(lambda_labelmix=10.0)
-        parser.set_defaults(EMA_decay=0.9999)
-        parser.set_defaults(num_epochs=100)
 
 
 def save_options(opt, parser):

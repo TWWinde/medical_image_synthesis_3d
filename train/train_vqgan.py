@@ -1,20 +1,10 @@
 "Adapted from https://github.com/SongweiGe/TATS"
 import sys
-
 from vq_gan_3d.model.vqgan import put_on_multi_gpus
-
 sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
-import os
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
-# from ddpm.diffusion import default
 from vq_gan_3d.model import VQGAN
-from train.callbacks import ImageLogger, VideoLogger
 from train.get_dataset import get_dataset
-import hydra
-from omegaconf import DictConfig, open_dict
-from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
 import torch
 import util as utils
 import config_set as config
@@ -28,6 +18,7 @@ timer = utils.timer(opt)
 visualizer_losses = utils.losses_saver(opt)
 im_saver = utils.image_saver(opt)
 train_dataset, val_dataset, sampler = get_dataset(opt)
+
 dataloader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                               num_workers=opt.num_workers, sampler=sampler)
 val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size,
@@ -101,6 +92,3 @@ utils.save_networks(opt, cur_iter, model, latest=True)
 print("The training has successfully finished")
 
 
-
-if __name__ == '__main__':
-    run()

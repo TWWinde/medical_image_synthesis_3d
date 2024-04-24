@@ -1,5 +1,8 @@
 "Adapted from https://github.com/SongweiGe/TATS"
 import sys
+
+from vq_gan_3d.model.vqgan import put_on_multi_gpus
+
 sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
 import os
 import pytorch_lightning as pl
@@ -24,16 +27,92 @@ print("nb of gpus: ", torch.cuda.device_count())
 timer = utils.timer(opt)
 visualizer_losses = utils.losses_saver(opt)
 im_saver = utils.image_saver(opt)
+train_dataset, val_dataset, sampler = get_dataset(opt)
+dataloader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
+                              num_workers=opt.num_workers, sampler=sampler)
+val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size,
+                            shuffle=False, num_workers=opt.num_workers)
+
+model = VQGAN(opt)
+model = put_on_multi_gpus(model, opt)
+
+lr = opt.lr
+optimizerG = torch.optim.Adam(list(model.module.encoder.parameters()) +
+                              list(model.module.decoder.parameters()) +
+                              list(model.module.pre_vq_conv.parameters()) +
+                              list(model.module.post_vq_conv.parameters()) +
+                              list(model.module.codebook.parameters()),
+                              lr=lr, betas=(0.5, 0.9))
+optimizerD = torch.optim.Adam(list(model.module.image_discriminator.parameters()) +
+                                list(model.module.video_discriminator.parameters()),
+                                lr=lr, betas=(0.5, 0.9))
 
 
 
+def loopy_iter(dataset):
+    while True:
+        for item in dataset:
+            yield item
+
+# --- the training loop ---#
+already_started = True
+start_epoch, start_iter = utils.get_start_iters(opt.loaded_latest_iter, len(dataloader))
+
+for epoch in range(start_epoch, opt.num_epochs):
+    for i, data in enumerate(dataloader):
+        if not already_started and i < start_iter:
+            continue
+        already_started = True
+        cur_iter = epoch*len(dataloader) + i
+
+        # --- generator unconditional update ---#
+        model.module.netG.zero_grad()
+        # image.shape torch.Size([2, 3, 256, 256])
+        # label.shape torch.Size([2, 38, 256, 256])
+        loss_G, losses_G_list = model(data, "losses_G")
+        loss_G, losses_G_list = loss_G.mean(), [loss.mean() if loss is not None else None for loss in losses_G_list]
+        loss_G.backward()
+        optimizerG.step()
+
+        # --- discriminator update ---#
+        model.module.netDu.zero_grad()
+        loss_D = model(data, "losses_D")
+        loss_D.backward()
+        optimizerD.step()
+
+        # --- stats update ---#
+
+        if not opt.no_EMA:
+            utils.update_EMA(model, cur_iter, dataloader, opt)
+        if cur_iter % opt.freq_print == 0:
+            im_saver.visualize_batch(model, image, label, cur_iter)
+            timer(epoch, cur_iter)
+        if cur_iter % opt.freq_save_latest == 0:
+            utils.save_networks(opt, cur_iter, model, latest=True)
+        if cur_iter % opt.freq_fid == 0 and cur_iter > 0:
+            is_best = fid_computer.update(model, cur_iter)
+            metrics_computer.update_metrics(model, cur_iter)
+            if is_best:
+                utils.save_networks(opt, cur_iter, model, best=True)
+        visualizer_losses(cur_iter, losses_G_list+losses_S_list+losses_Du_list+losses_reg_list)
+
+# --- after training ---#
+utils.update_EMA(model, cur_iter, dataloader, opt, force_run_stats=True)
+utils.save_networks(opt, cur_iter, model)
+utils.save_networks(opt, cur_iter, model, latest=True)
+is_best = fid_computer.update(model, cur_iter)
+metrics_computer.update_metrics(model, cur_iter)
+if is_best:
+    utils.save_networks(opt, cur_iter, model, best=True)
+
+print("The training has successfully finished")
 def run(opt):
 
     train_dataset, val_dataset, sampler = get_dataset(opt)
-    train_dataloader = DataLoader(dataset=train_dataset, batch_size=cfg.model.batch_size,
-                                  num_workers=cfg.model.num_workers, sampler=sampler)
-    val_dataloader = DataLoader(val_dataset, batch_size=cfg.model.batch_size,
-                                shuffle=False, num_workers=cfg.model.num_workers)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
+                                  num_workers=opt.num_workers, sampler=sampler)
+    val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size,
+                                shuffle=False, num_workers=opt.num_workers)
 
     # automatically adjust learning rate
     bs, base_lr, ngpu, accumulate = cfg.model.batch_size, cfg.model.lr, cfg.model.gpus, cfg.model.accumulate_grad_batches

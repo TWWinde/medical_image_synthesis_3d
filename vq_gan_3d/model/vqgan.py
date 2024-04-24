@@ -3,6 +3,8 @@
 
 import math
 import argparse
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -49,6 +51,7 @@ def put_on_multi_gpus(model, opt):
         model.module = model
     assert len(opt.gpu_ids.split(",")) == 0 or opt.batch_size % len(opt.gpu_ids.split(",")) == 0
     return model
+
 
 class VQGAN(nn.Module):
     def __init__(self, opt):
@@ -114,7 +117,7 @@ class VQGAN(nn.Module):
         h = self.post_vq_conv(shift_dim(h, -1, 1))
         return self.decoder(h)
 
-    def forward(self, x, optimizer_idx=None, log_image=False):
+    def forward(self, x, mode, log_image=False):
 
         B, C, T, H, W = x.shape
         z = self.pre_vq_conv(self.encoder(x))
@@ -133,7 +136,7 @@ class VQGAN(nn.Module):
         if log_image:
             return frames, frames_recon, x, x_recon
 
-        if optimizer_idx == 0:
+        if mode == 'losses_G':
             # Autoencoder - train the "generator"
             # Perceptual loss
             perceptual_loss = 0
@@ -150,7 +153,7 @@ class VQGAN(nn.Module):
             g_video_loss = -torch.mean(logits_video_fake)
             g_loss = self.image_gan_weight * g_image_loss + self.video_gan_weight * g_video_loss
             disc_factor = adopt_weight(
-                self.global_step, threshold=self.cfg.model.discriminator_iter_start)
+                self.global_step, threshold=self.opt.discriminator_iter_start)
             aeloss = disc_factor * g_loss
 
             # GAN feature matching loss - tune features such that we get the same prediction result on the discriminator
@@ -171,8 +174,7 @@ class VQGAN(nn.Module):
                     video_gan_feat_loss += feat_weights * \
                                            F.l1_loss(pred_video_fake[i], pred_video_real[i].detach(
                                            )) * (self.video_gan_weight > 0)
-            gan_feat_loss = disc_factor * self.gan_feat_weight * \
-                            (image_gan_feat_loss + video_gan_feat_loss)
+            gan_feat_loss = disc_factor * self.gan_feat_weight * (image_gan_feat_loss + video_gan_feat_loss)
 
             self.log("train/g_image_loss", g_image_loss,
                      logger=True, on_step=True, on_epoch=True)
@@ -192,9 +194,12 @@ class VQGAN(nn.Module):
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log('train/perplexity', vq_output['perplexity'],
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
-            return recon_loss, x_recon, vq_output, aeloss, perceptual_loss, gan_feat_loss
 
-        if optimizer_idx == 1:
+            loss_G = recon_loss + aeloss + perceptual_loss + gan_feat_loss
+
+            return loss_G, [recon_loss,  aeloss, perceptual_loss, gan_feat_loss]
+
+        if mode == 'losses_D':
             # Train discriminator
             logits_image_real, _ = self.image_discriminator(frames.detach())
             logits_video_real, _ = self.video_discriminator(x.detach())
@@ -225,13 +230,10 @@ class VQGAN(nn.Module):
                      logger=True, on_step=True, on_epoch=True)
             self.log("train/discloss", discloss, prog_bar=True,
                      logger=True, on_step=True, on_epoch=True)
+
             return discloss
 
-        perceptual_loss = self.perceptual_model(
-            frames, frames_recon) * self.perceptual_weight
-        return recon_loss, x_recon, vq_output, perceptual_loss
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch,  optimizer_idx):
         x = batch['data']
         if optimizer_idx == 0:
             recon_loss, _, vq_output, aeloss, perceptual_loss, gan_feat_loss = self.forward(
@@ -286,6 +288,35 @@ class VQGAN(nn.Module):
         # log['std_org'] = batch['std_org']
         return log
 
+    def load_checkpoints(self):
+        if self.opt.phase == "test":
+            path = os.path.join(self.opt.checkpoints_dir, self.opt.name, "models", "best_")
+            self.encoder.load_state_dict(torch.load(path + "G.pth"))
+            self.decoder.load_state_dict(torch.load(path + "EMA.pth"))
+        elif self.opt.continue_train:
+            path = os.path.join(self.opt.checkpoints_dir, self.opt.name, "models", "latest_")
+            print(path + "G.pth")
+            try:
+                self.netG.load_state_dict(torch.load(path + "G.pth"))
+                print('Generator successfully loaded')
+            except:
+                print('G.pth not found', path + "G.pth")
+            try:
+                self.netS.load_state_dict(torch.load(path + "Du.pth"))
+                print('Discriminator successfully loaded')
+            except:
+                print('Du.pth not found')
+
+            # self.netG.load_state_dict(torch.load(path + "G.pth"))
+            # self.netS.load_state_dict(torch.load(path + "S.pth"))
+            # self.netDu.load_state_dict(torch.load(path + "Du.pth"))
+            if not self.opt.no_EMA:
+                try:
+                    self.netEMA.load_state_dict(torch.load(path + "EMA.pth"))
+                    print('EMA successfully loaded')
+                except:
+                    print('EMA.pth not found')
+
 
 def Normalize(in_channels, norm_type='group', num_groups=32):
     assert norm_type in ['group', 'batch']
@@ -294,6 +325,7 @@ def Normalize(in_channels, norm_type='group', num_groups=32):
         return torch.nn.GroupNorm(num_groups=num_groups, num_channels=in_channels, eps=1e-6, affine=True)
     elif norm_type == 'batch':
         return torch.nn.SyncBatchNorm(in_channels)
+
 
 
 class Encoder(nn.Module):

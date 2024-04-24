@@ -63,7 +63,7 @@ class VQGAN(nn.Module):
 
         self.encoder = Encoder(opt)
         self.decoder = Decoder(opt)
-        self.enc_out_ch = self.encoder.out_channels
+        self.opt.enc_out_ch = self.encoder.out_channels
 
         self.codebook = Codebook(opt.n_codes, opt.embedding_dim,
                                  no_random_restart=opt.no_random_restart, restart_thres=opt.restart_thres)
@@ -331,11 +331,12 @@ def Normalize(in_channels, norm_type='group', num_groups=32):
 class Encoder(nn.Module):
     def __init__(self, opt):
         super().__init__()
+        self.opt = opt
         n_times_downsample = np.array([int(math.log2(d)) for d in opt.downsample])
         self.conv_blocks = nn.ModuleList()
         max_ds = n_times_downsample.max()
         self.pre_vq_conv = SamePadConv3d(
-            self.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
+            opt.enc_out_ch, opt.embedding_dim, 1, padding_type=opt.padding_type)
         self.conv_first = SamePadConv3d(
             opt.image_channel, opt.n_hiddens, kernel_size=3, padding_type=opt.padding_type)
 
@@ -371,7 +372,7 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, opt):
         super().__init__()
-
+        self.opt= opt
         n_times_upsample = np.array([int(math.log2(d)) for d in opt.upsample])
         max_us = n_times_upsample.max()
 
@@ -380,8 +381,7 @@ class Decoder(nn.Module):
             Normalize(in_channels, opt.norm_type, num_groups=opt.num_groups),
             SiLU()
         )
-        self.encoder = Encoder(opt)
-        self.enc_out_ch = self.encoder.out_channels
+        self.enc_out_ch = opt.enc_out_ch
         self.conv_blocks = nn.ModuleList()
         for i in range(max_us):
             block = nn.Module()

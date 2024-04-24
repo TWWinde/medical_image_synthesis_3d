@@ -300,7 +300,6 @@ class image_saver():
         self.grid = 5
         self.path = os.path.join(opt.checkpoints_dir, opt.name, "images")+"/"
         self.opt = opt
-        self.num_cl = opt.label_nc + 2
         os.makedirs(self.path, exist_ok=True)
 
     def visualize_batch(self, image, recon, cur_iter):
@@ -310,10 +309,7 @@ class image_saver():
     def save_images(self, batch, name, cur_iter, is_label=False):
         fig = plt.figure()
         for i in range(min(self.rows * self.cols, len(batch))):
-            if is_label:
-                im = tens_to_lab_color(batch[i], self.num_cl)
-            else:
-                im = tens_to_im(batch[i])
+            im = tens_to_im(batch[i])
             plt.axis("off")
             fig.add_subplot(self.rows, self.cols, i+1)
             plt.axis("off")

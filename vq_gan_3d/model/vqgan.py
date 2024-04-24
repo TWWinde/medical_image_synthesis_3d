@@ -87,7 +87,7 @@ class VQGAN(nn.Module):
 
         self.perceptual_weight = self.opt.perceptual_weight
 
-        self.l1_weight = self.opt.model.l1_weight
+        self.l1_weight = self.opt.l1_weight
         self.save_hyperparameters()
         self.load_checkpoints()
 
@@ -203,7 +203,7 @@ class VQGAN(nn.Module):
             d_image_loss = self.disc_loss(logits_image_real, logits_image_fake)
             d_video_loss = self.disc_loss(logits_video_real, logits_video_fake)
             disc_factor = adopt_weight(
-                self.global_step, threshold=self.cfg.model.discriminator_iter_start)
+                self.global_step, threshold=self.opt.discriminator_iter_start)
             discloss = disc_factor * \
                        (self.image_gan_weight * d_image_loss +
                         self.video_gan_weight * d_video_loss)
@@ -247,7 +247,7 @@ class VQGAN(nn.Module):
                  vq_output['commitment_loss'], prog_bar=True)
 
     def configure_optimizers(self):
-        lr = self.cfg.model.lr
+        lr = self.opt.lr
         opt_ae = torch.optim.Adam(list(self.encoder.parameters()) +
                                   list(self.decoder.parameters()) +
                                   #list(self.pre_vq_conv.parameters()) +

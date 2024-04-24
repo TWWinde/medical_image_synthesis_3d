@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #Slurm parameters
-#SBATCH --job-name=VQ-GAN
+#SBATCH --job-name=3D-VQ-GAN
 #SBATCH --output=VQ-GAN%j.%N.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4

@@ -24,10 +24,8 @@ module load cuda
 
 #experiment_1 train VQ-GAN
 python /misc/no_backups/s1449/medical_image_synthesis_3d/train/train_vqgan.py dataset_name synthrad2023 \
---name vq_gan_3d --gpu_ids 0,1 \
- --precision 16 --embedding_dim 8 \
---n_hiddens 16 --downsample [2,2,2] --num_workers 32 --gradient_clip_val 1.0 \
+--name vq_gan_3d --gpu_ids 0,1 --embedding_dim 8 --gradient_clip_val 1.0 \
 --lr 0.0003 --discriminator_iter_start 10000 --perceptual_weight 4 \
 --image_gan_weight 1 --video_gan_weight 1 --gan_feat_weight 4 \
---batch_size 1 --n_codes 16384 --accumulate_grad_batches 1
+--batch_size 1 --n_codes 16384
 

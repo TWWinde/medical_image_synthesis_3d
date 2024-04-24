@@ -333,6 +333,7 @@ class Encoder(nn.Module):
         super().__init__()
         n_times_downsample = np.array([int(math.log2(d)) for d in opt.downsample])
         self.conv_blocks = nn.ModuleList()
+        self.encoder = Encoder(opt)
         self.enc_out_ch = self.encoder.out_channels
         max_ds = n_times_downsample.max()
         self.pre_vq_conv = SamePadConv3d(
@@ -381,6 +382,7 @@ class Decoder(nn.Module):
             Normalize(in_channels, opt.norm_type, num_groups=opt.num_groups),
             SiLU()
         )
+        self.encoder = Encoder(opt)
         self.enc_out_ch = self.encoder.out_channels
         self.conv_blocks = nn.ModuleList()
         for i in range(max_us):

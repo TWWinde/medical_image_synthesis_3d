@@ -58,6 +58,7 @@ class VQGAN(nn.Module):
         super().__init__()
         self.opt = opt
         self.opt.downsample = [4, 4, 4]
+        self.opt.upsample = [4, 4, 4]
         self.embedding_dim = opt.embedding_dim
         self.n_codes = self.opt.n_codes
         self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample))

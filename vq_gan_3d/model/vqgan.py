@@ -167,6 +167,8 @@ class VQGAN(nn.Module):
                                            )) * (self.video_gan_weight > 0)
             gan_feat_loss = disc_factor * self.gan_feat_weight * (image_gan_feat_loss + video_gan_feat_loss)
 
+            commitment_loss = vq_output['commitment_loss']
+
             self.log("train/g_image_loss", g_image_loss,
                      logger=True, on_step=True, on_epoch=True)
             self.log("train/g_video_loss", g_video_loss,
@@ -186,7 +188,7 @@ class VQGAN(nn.Module):
             self.log('train/perplexity', vq_output['perplexity'],
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
-            loss_G = recon_loss + aeloss + perceptual_loss + gan_feat_loss
+            loss_G = recon_loss + aeloss + perceptual_loss + gan_feat_loss + commitment_loss
 
             return loss_G, [recon_loss,  aeloss, perceptual_loss, gan_feat_loss], frames, frames_recon
 

@@ -1,6 +1,6 @@
 "Adapted from https://github.com/SongweiGe/TATS"
 import sys
-sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
+sys.path.append('/misc/no_backups/d1502/medical_image_synthesis_3d')
 from vq_gan_3d.model.vqgan import put_on_multi_gpus
 from torch.utils.data import DataLoader
 from vq_gan_3d.model import VQGAN

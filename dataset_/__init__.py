@@ -1,6 +1,6 @@
 import sys
-sys.path.append('/misc/no_backups/s1449/medical_image_synthesis_3d')
-sys.path.append('/misc/no_backups/s1449')
+sys.path.append('/misc/no_backups/d1502/medical_image_synthesis_3d')
+sys.path.append('/misc/no_backups/d1502')
 from dataset_.breast_uka import BreastUKA
 from dataset_.mrnet import MRNetDataset
 from dataset_.brats import BRATSDataset

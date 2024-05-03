@@ -32,7 +32,7 @@ def add_all_arguments(parser, train):
     parser.add_argument('--num_workers', type=int, default=30, help='random seed')
     parser.add_argument('--batch_size', type=int, default=2, help='input batch size')
     parser.add_argument('--root_dir', type=str, default='/misc/data/private/autoPET/Task1/pelvis/', help='path to dataset root')
-    parser.add_argument('--checkpoints_dir', type=str, default='/misc/no_backups/s1449/medical_image_synthesis_3d/checkpoints', help='path to dataset root')
+    parser.add_argument('--checkpoints_dir', type=str, default='/misc/no_backups/d1502/medical_image_synthesis_3d/checkpoints', help='path to dataset root')
     parser.add_argument('--dataset_mode', type=str, default='ct2mri', help='this option indicates which dataset should be loaded')
     parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation')
     parser.add_argument('--no_netDu', action='store_true', help='if specified, no undconditional discriminator')
@@ -85,7 +85,7 @@ def add_all_arguments(parser, train):
         parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
 
     else:
-        parser.add_argument('--results_dir', type=str, default='/misc/no_backups/s1449/medical_image_synthesis_3d'
+        parser.add_argument('--results_dir', type=str, default='/misc/no_backups/d1502/medical_image_synthesis_3d'
                                                                '/results/', help='saves testing results here.')
         parser.add_argument('--ckpt_iter', type=str, default='best', help='which epoch to load to evaluate a model')
     return parser

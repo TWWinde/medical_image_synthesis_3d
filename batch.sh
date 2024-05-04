@@ -4,7 +4,7 @@
 #SBATCH --job-name=3DVQGAN
 #SBATCH --output=VQ-GAN%j.%N.out
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --time=6-23:00:00
 #SBATCH --mem=64G
 #SBATCH --nodes=1

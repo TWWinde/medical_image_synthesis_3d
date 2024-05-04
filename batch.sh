@@ -16,7 +16,7 @@
 
 # Activate everything you need
 
-#conda activate /anaconda3/envs/myenv
+conda activate /anaconda3/envs/myenv
 pyenv activate venv
 module load cuda
 # Run your python code

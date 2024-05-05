@@ -52,6 +52,7 @@ for epoch in range(start_epoch, opt.num_epochs):
             continue
         already_started = True
         cur_iter = epoch*len(dataloader) + i
+        print(i, data)
 
         # --- generator unconditional update ---#
         model.module.encoder.zero_grad()

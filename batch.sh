@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --time=6-23:00:00
 #SBATCH --mem=64G
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --gpus=2
 #SBATCH --qos=batch
 # SBATCH --gpus=rtx_a5000:1

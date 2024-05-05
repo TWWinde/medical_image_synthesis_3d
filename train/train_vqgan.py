@@ -54,14 +54,17 @@ for epoch in range(start_epoch, opt.num_epochs):
         cur_iter = epoch*len(dataloader) + i
 
         # --- generator unconditional update ---#
-        model.module.netG.zero_grad()
+        model.module.encoder.zero_grad()
+        model.module.decoder.zero_grad()
+        model.module.codebook.zero_grad()
         loss_G, losses_G_list, frames, frames_recon = model(data, "losses_G")
         loss_G, losses_G_list = loss_G.mean(), [loss.mean() if loss is not None else None for loss in losses_G_list]
         loss_G.backward()
         optimizerG.step()
 
         # --- discriminator update ---#
-        model.module.netDu.zero_grad()
+        model.module.image_discriminator.zero_grad()
+        model.module.video_discriminator.zero_grad()
         loss_D, losses_D_list = model(data, "losses_D")
         loss_D, losses_D_list = loss_D.mean(), [loss.mean() if loss is not None else None for loss in losses_D_list]
         loss_D.backward()

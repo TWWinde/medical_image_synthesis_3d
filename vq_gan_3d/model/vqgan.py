@@ -109,7 +109,7 @@ class VQGAN(nn.Module):
         return self.decoder(h)
 
     def forward(self, x, mode, log_image=False):
-
+        x = x['data']
         B, C, T, H, W = x.shape
         z = self.encoder(x)
         vq_output = self.codebook(z)

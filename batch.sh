@@ -8,7 +8,7 @@
 #SBATCH --time=6-23:00:00
 #SBATCH --mem=64G
 #SBATCH --nodes=1
-#SBATCH --gpus=1
+#SBATCH --gpus=3
 #SBATCH --qos=batch
 # SBATCH --gpus=rtx_a5000:1
 # SBATCH --gpus=geforce_rtx_2080ti:1

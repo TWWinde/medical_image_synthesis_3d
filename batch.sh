@@ -24,9 +24,10 @@ pyenv activate venv
 
 
 #experiment_1 train VQ-GAN
-python /misc/no_backups/d1502/medical_image_synthesis_3d/train/train_vqgan.py --dataset_name SynthRAD2023 \
---name vq_gan_3d --gpu_ids 0,1,2,3 --embedding_dim 8 \
---lr 0.0003 --discriminator_iter_start 10000 --perceptual_weight 4 \
---image_gan_weight 1 --video_gan_weight 1 --gan_feat_weight 4 \
---batch_size 4 --n_codes 16384
+python /misc/no_backups/d1502/medical_image_synthesis_3d/t.py
+#python /misc/no_backups/d1502/medical_image_synthesis_3d/train/train_vqgan.py --dataset_name SynthRAD2023 \
+#--name vq_gan_3d --gpu_ids 0,1,2,3 --embedding_dim 8 \
+#--lr 0.0003 --discriminator_iter_start 10000 --perceptual_weight 4 \
+#--image_gan_weight 1 --video_gan_weight 1 --gan_feat_weight 4 \
+#--batch_size 4 --n_codes 16384
 

@@ -1,7 +1,8 @@
 from ddpm.time_embedding import TimeEmbbeding
+from ddpm.unet_block import SPADEGroupNorm3D, UnetBasicBlock
 import torch
 import torch.nn as nn
-from monai.networks.blocks import UnetBasicBlock, UnetResBlock, UnetUpBlock, Convolution, UnetOutBlock
+from monai.networks.blocks import UnetResBlock, UnetUpBlock, Convolution, UnetOutBlock
 from monai.networks.layers.utils import get_act_layer
 
 
@@ -212,8 +213,6 @@ class UNet(nn.Module):
 
     def forward_with_cond_scale(self, *args, cond_scale=0., **kwargs):
         return self.forward(*args, **kwargs)
-
-
 
 
 if __name__ == '__main__':

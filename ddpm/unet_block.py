@@ -16,10 +16,37 @@ from collections.abc import Sequence
 import numpy as np
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 from monai.networks.blocks.convolutions import Convolution
 from monai.networks.layers.factories import Act, Norm
 from monai.networks.layers.utils import get_act_layer, get_norm_layer
+
+
+class SPADEGroupNorm3D(nn.Module):
+    def __init__(self, norm_nc, label_nc, kernel_size, eps=1e-5):
+        super().__init__()
+
+        self.norm = nn.GroupNorm(32, norm_nc, affine=False)
+
+        self.eps = eps
+        nhidden = 128
+
+        self.mlp_shared = nn.Sequential(
+            nn.Conv3d(label_nc, nhidden, kernel_size=kernel_size, padding=1),
+            nn.ReLU()
+        )
+        self.mlp_gamma = nn.Conv3d(nhidden, norm_nc, kernel_size=kernel_size, padding=1)
+        self.mlp_beta = nn.Conv3d(nhidden, norm_nc, kernel_size=kernel_size, padding=1)
+
+    def forward(self, x, segmap):
+        x = self.norm(x)
+
+        segmap = F.interpolate(segmap, size=x.size()[2:], mode='nearest')
+        actv = self.mlp_shared(segmap)
+        gamma = self.mlp_gamma(actv)
+        beta = self.mlp_beta(actv)
+
+        return x * (1 + gamma) + beta
 
 
 class UnetResBlock(nn.Module):
@@ -168,7 +195,6 @@ class UnetBasicBlock(nn.Module):
         self.lrelu = get_act_layer(name=act_name)
         self.norm1 = get_norm_layer(name=norm_name, spatial_dims=spatial_dims, channels=out_channels)
         self.norm2 = get_norm_layer(name=norm_name, spatial_dims=spatial_dims, channels=out_channels)
-
 
     def forward(self, inp):
         out = self.conv1(inp)

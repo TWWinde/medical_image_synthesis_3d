@@ -34,9 +34,10 @@ def process_images(source_folder, train_folder, test_folder, crop_size=(256, 256
     label_train_folder = os.path.join(train_folder, 'label')
     label_test_folder = os.path.join(test_folder, 'label')
 
-    os.makedirs(os.path.join(train_folder, 'ct'), exist_ok=True)
-    os.makedirs(os.path.join(train_folder, 'label'), exist_ok=True)
-    os.makedirs(test_folder, exist_ok=True)
+    os.makedirs(ct_train_folder, exist_ok=True)
+    os.makedirs(ct_test_folder, exist_ok=True)
+    os.makedirs(label_test_folder, exist_ok=True)
+    os.makedirs(label_train_folder, exist_ok=True)
 
     ct_files = [os.path.join(source_folder, f) for f in os.listdir(source_folder) if f.endswith('0001.nii.gz')]
 

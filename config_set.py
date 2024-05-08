@@ -27,7 +27,8 @@ def add_all_arguments(parser, train):
     #--- train VQ-GAN---
     parser.add_argument('--name', type=str, default='VQ-GAN', help='name of the experiment. It decides where to store samples and models')
     parser.add_argument('--seed', type=int, default=42, help='random seed')
-    parser.add_argument('--dataset_name', type=str, default='SynthRAD2023', help='name of the experiment. It decides where to store samples and models')
+    parser.add_argument('--dataset_mode', type=str, default='SynthRAD2023', help='name of the experiment. It decides where to store samples and models')
+    parser.add_argument('--dataset_name', type=str, default='synthrad2023', help='name of the experiment. It decides where to store samples and models')
     parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
     parser.add_argument('--num_workers', type=int, default=30, help='random seed')
     parser.add_argument('--batch_size', type=int, default=2, help='input batch size')

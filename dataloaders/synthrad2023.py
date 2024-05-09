@@ -16,7 +16,7 @@ TRAIN_TRANSFORMS = tio.Compose([
 ])
 
 
-class SynthRAD2023Dataset(Dataset):
+class SynthRAD2023(Dataset):
     def __init__(self, opt, train_diffusion=False):
         super().__init__()
         self.opt = opt

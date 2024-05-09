@@ -5,6 +5,8 @@ def get_dataset_name(mode):
 
     if mode == "SynthRAD2023":
         return "synthrad2023"
+    if mode == "AutoPET":
+        return "autopet"
     else:
         ValueError("There is no such dataset regime as %s" % mode)
 
@@ -14,8 +16,8 @@ def get_dataloaders(opt):
 
     file = __import__("dataloaders." + dataset_name)
 
-    dataset_train = file.__dict__[dataset_name].__dict__[dataset_name](opt, for_metrics=False)
-    dataset_val = file.__dict__[dataset_name].__dict__[dataset_name](opt, for_metrics=True)
+    dataset_train = file.__dict__[dataset_name].__dict__[dataset_name](opt)
+    dataset_val = file.__dict__[dataset_name].__dict__[dataset_name](opt)
     print("Created %s, size train: %d, size val: %d" % (dataset_name, len(dataset_train), len(dataset_val)))
 
     dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=opt.batch_size, shuffle=True,

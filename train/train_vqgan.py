@@ -8,6 +8,7 @@ from train.get_dataset import get_dataset
 import torch
 import util as utils
 import config_set as config
+import dataloaders.dataloaders as dataloaders
 # --- read options ---#
 
 opt = config.read_arguments(train=True)
@@ -17,12 +18,14 @@ print("nb of gpus: ", torch.cuda.device_count())
 timer = utils.timer(opt)
 visualizer_losses = utils.losses_saver(opt)
 im_saver = utils.image_saver(opt)
-train_dataset, val_dataset, sampler = get_dataset(opt)
+dataloader, dataloader_val = dataloaders.get_dataloaders(opt)
 
-dataloader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
-                              num_workers=opt.num_workers, sampler=sampler)
-val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size,
-                            shuffle=False, num_workers=opt.num_workers)
+##train_dataset, val_dataset, sampler = get_dataset(opt)
+
+#dataloader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
+                              #num_workers=opt.num_workers, sampler=sampler)
+#val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size,
+                            #shuffle=False, num_workers=opt.num_workers)
 
 model = VQGAN(opt)
 model = put_on_multi_gpus(model, opt)

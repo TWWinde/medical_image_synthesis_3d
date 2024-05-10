@@ -1,5 +1,4 @@
 "Taken and adapted from https://github.com/lucidrains/video-diffusion-pytorch"
-
 import torch
 from einops import rearrange
 

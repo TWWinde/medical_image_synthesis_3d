@@ -1,8 +1,7 @@
 from ddpm.time_embedding import TimeEmbbeding
-from ddpm.unet_block import SPADEGroupNorm3D, UnetBasicBlock
+from ddpm.unet_block import SPADEGroupNorm3D, UnetBasicBlock, UnetOutBlock, UnetOutBlock, UnetResBlock, UnetUpBlock
 import torch
 import torch.nn as nn
-from monai.networks.blocks import UnetResBlock, UnetUpBlock, Convolution, UnetOutBlock
 from monai.networks.layers.utils import get_act_layer
 
 

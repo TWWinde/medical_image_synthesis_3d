@@ -1,7 +1,5 @@
 import os
 import nibabel as nib
-import numpy as np
-import shutil
 from sklearn.model_selection import train_test_split
 
 
@@ -12,19 +10,29 @@ def crop_center(img, new_x, new_y):
     return img[start_x:start_x + new_x, start_y:start_y + new_y, :]
 
 
-def save_cropped(files, folder, crop_size):
+def crop_block(img, new_x, new_y, start_z, length):
+    x, y, z = img.shape
+    start_x = x // 2 - new_x // 2
+    start_y = y // 2 - new_y // 2
+    return img[start_x:start_x + new_x, start_y:start_y + new_y, start_z:start_z + length]
+
+
+def save_cropped(files, folder, crop_size, crop_2_block=False, length=32, stride=16):
     for file_path in files:
 
         img = nib.load(file_path)
         data = img.get_fdata()
-
-        cropped_data = crop_center(data, *crop_size)
-
-        cropped_img = nib.Nifti1Image(cropped_data, affine=img.affine)
-
-        output_path = os.path.join(folder, os.path.basename(file_path))
-
-        nib.save(cropped_img, output_path)
+        if crop_2_block:
+            for i in range(0, data.shape[3]-stride, stride):
+                cropped_data = crop_block(data, *crop_size, i, length)
+                cropped_img = nib.Nifti1Image(cropped_data, affine=img.affine)
+                output_path = os.path.join(folder, os.path.basename(file_path))
+                nib.save(cropped_img, output_path)
+        else:
+            cropped_data = crop_center(data, *crop_size)
+            cropped_img = nib.Nifti1Image(cropped_data, affine=img.affine)
+            output_path = os.path.join(folder, os.path.basename(file_path))
+            nib.save(cropped_img, output_path)
 
 
 def process_images(source_folder, train_folder, test_folder, crop_size=(200, 200)):

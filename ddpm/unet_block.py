@@ -23,11 +23,10 @@ from monai.networks.layers.utils import get_act_layer, get_norm_layer
 
 
 class SPADEGroupNorm3D(nn.Module):
-    def __init__(self, norm_nc, label_nc, kernel_size, eps=1e-5):
+    def __init__(self, norm_nc, kernel_size, label_nc=32, eps=1e-5):
         super().__init__()
 
         self.norm = nn.GroupNorm(32, norm_nc, affine=False)
-
         self.eps = eps
         nhidden = 128
 
@@ -122,8 +121,6 @@ class UnetResBlock(nn.Module):
             )
             self.norm3 = get_norm_layer(name=norm_name, spatial_dims=spatial_dims, channels=out_channels)
 
-
-
     def forward(self, inp):
         residual = inp
         out = self.conv1(inp)
@@ -206,6 +203,77 @@ class UnetBasicBlock(nn.Module):
         return out
 
 
+class UnetBasicBlock_Spade(nn.Module):
+
+    """
+
+    Args:
+        spatial_dims: number of spatial dimensions.
+        in_channels: number of input channels.
+        out_channels: number of output channels.
+        kernel_size: convolution kernel size.
+        stride: convolution stride.
+        norm_name: feature normalization type and arguments.
+        act_name: activation layer type and arguments.
+        dropout: dropout probability.
+
+    """
+
+    def __init__(
+        self,
+        spatial_dims: int,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Sequence[int] | int,
+        stride: Sequence[int] | int,
+        norm_name: tuple | str,
+        act_name: tuple | str = ("leakyrelu", {"inplace": True, "negative_slope": 0.01}),
+        dropout: tuple | str | float | None = None,
+    ):
+        super().__init__()
+        self.conv1 = get_conv_layer(
+            spatial_dims,
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            dropout=dropout,
+            act=None,
+            norm=None,
+            conv_only=False,
+        )
+        self.conv2 = get_conv_layer(
+            spatial_dims,
+            out_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            dropout=dropout,
+            act=None,
+            norm=None,
+            conv_only=False,
+        )
+        self.lrelu = get_act_layer(name=act_name)
+        self.norm1 = get_norm_layer(name=norm_name, spatial_dims=spatial_dims, channels=out_channels)
+        self.norm2 = get_norm_layer(name=norm_name, spatial_dims=spatial_dims, channels=out_channels)
+        self.spade = SPADEGroupNorm3D(norm_nc=out_channels, kernel_size=kernel_size)
+
+    def forward(self, inp):
+        out = self.conv1(inp)
+        out = self.norm1(out)
+        # ! To Do add Spade
+        out = self.spade(out)
+        out = self.lrelu(out)
+
+        out = self.conv2(out)
+        out = self.norm2(out)
+        # ! To Do add Spade
+        out = self.spade(out)
+        out = self.lrelu(out)
+
+        return out
+
+
 class UnetUpBlock(nn.Module):
     """
     An upsampling module that can be used for DynUNet, based on:
@@ -255,6 +323,17 @@ class UnetUpBlock(nn.Module):
             is_transposed=True,
         )
         self.conv_block = UnetBasicBlock(
+            spatial_dims,
+            out_channels + out_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            dropout=dropout,
+            norm_name=norm_name,
+            act_name=act_name,
+        )
+        # To Do add spade
+        self.conv_block_spade = UnetBasicBlock_Spade(
             spatial_dims,
             out_channels + out_channels,
             out_channels,

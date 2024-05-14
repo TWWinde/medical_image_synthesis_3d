@@ -67,6 +67,6 @@ class AutoPET(Dataset):
             img = self.preprocessing_CropOrPad(img)
             img = self.preprocessing_RescaleIntensity(img)
             img = self.transforms(img)
-            return {'ct_image': img.data.permute(0, -1, 1, 2)}
+            return {'data': img.data.permute(0, -1, 1, 2)}
 
 

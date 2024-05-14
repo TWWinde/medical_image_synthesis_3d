@@ -1,7 +1,7 @@
 "Adapted from https://github.com/SongweiGe/TATS"
 import sys
 sys.path.append('/misc/no_backups/d1502/medical_image_synthesis_3d')
-from vq_gan_3d.model.vqgan import put_on_multi_gpus
+#from vq_gan_3d.model.vqgan import put_on_multi_gpus
 from torch.utils.data import DataLoader
 from vq_gan_3d.model import VQGAN
 from train.get_dataset import get_dataset
@@ -28,7 +28,7 @@ dataloader, dataloader_val = dataloaders.get_dataloaders(opt)
                             #shuffle=False, num_workers=opt.num_workers)
 
 model = VQGAN(opt)
-model = put_on_multi_gpus(model, opt)
+#model = put_on_multi_gpus(model, opt)
 
 lr = opt.lr
 optimizerG = torch.optim.Adam(list(model.module.encoder.parameters()) +

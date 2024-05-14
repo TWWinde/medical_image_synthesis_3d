@@ -16,7 +16,7 @@ def get_dataset_name(mode):
 def get_dataloaders(opt):
     dataset_name = get_dataset_name(opt.dataset_mode)
 
-    file = __import__("medical_image_synthesis_3d.dataloaders." + dataset_name)
+    file = __import__("dataloaders." + dataset_name)
 
     dataset_train = file.__dict__[dataset_name].__dict__[dataset_name](opt)
     dataset_val = file.__dict__[dataset_name].__dict__[dataset_name](opt)

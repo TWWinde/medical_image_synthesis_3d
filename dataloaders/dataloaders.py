@@ -4,9 +4,9 @@ import torch
 def get_dataset_name(mode):
 
     if mode == "SynthRAD2023":
-        return "synthrad2023"
+        return "SynthRAD2023"
     if mode == "AutoPET":
-        return "autopet"
+        return "AutoPET"
     else:
         ValueError("There is no such dataset regime as %s" % mode)
 

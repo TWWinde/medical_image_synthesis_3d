@@ -2,17 +2,16 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import math
-import argparse
 import os
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.distributed as dist
+
 
 from vq_gan_3d.sync_batchnorm import DataParallelWithCallback
-from vq_gan_3d.utils import shift_dim, adopt_weight, comp_getattr
+from vq_gan_3d.utils import shift_dim, adopt_weight
 from vq_gan_3d.model.lpips import LPIPS
 from vq_gan_3d.model.codebook import Codebook
 

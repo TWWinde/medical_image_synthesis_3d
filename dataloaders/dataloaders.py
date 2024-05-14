@@ -1,4 +1,6 @@
 import torch
+import sys
+sys.path.append('/misc/no_backups/d1502/medical_image_synthesis_3d')
 
 
 def get_dataset_name(mode):

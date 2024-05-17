@@ -10,8 +10,10 @@
 #SBATCH --nodes=1
 #SBATCH --gpus=1
 #SBATCH --qos=batch
+#SBATCH --qos=shortbatch
+#SBATCH --partition=highperf
 # SBATCH --nodelist=linse19
-#SBATCH --gpus=rtx_a5000:1
+# SBATCH --gpus=rtx_a5000:1
 # SBATCH --gpus=rtx_a6000:1
 # SBATCH --gpus=geforce_rtx_2080ti:1
 # SBATCH --gpus=geforce_gtx_titan_x:1
@@ -32,3 +34,4 @@ python /misc/no_backups/d1502/medical_image_synthesis_3d/train/train_vqgan.py --
 --lr 0.0003 --discriminator_iter_start 10000 --perceptual_weight 4 \
 --image_gan_weight 1 --video_gan_weight 1 --gan_feat_weight 4 \
 --batch_size 1 --n_codes 16384
+m

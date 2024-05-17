@@ -34,4 +34,3 @@ python /misc/no_backups/d1502/medical_image_synthesis_3d/train/train_vqgan.py --
 --lr 0.0003 --discriminator_iter_start 10000 --perceptual_weight 4 \
 --image_gan_weight 1 --video_gan_weight 1 --gan_feat_weight 4 \
 --batch_size 1 --n_codes 16384
-m

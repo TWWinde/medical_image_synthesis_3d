@@ -118,8 +118,7 @@ class VQGAN(nn.Module):
 
         # Selects one random 2D image from each 3D Image
         frame_idx = torch.randint(0, T, [B]).cuda()
-        frame_idx_selected = frame_idx.reshape(-1,
-                                               1, 1, 1, 1).repeat(1, C, 1, H, W)
+        frame_idx_selected = frame_idx.reshape(-1, 1, 1, 1, 1).repeat(1, C, 1, H, W)
         frames = torch.gather(x, 2, frame_idx_selected).squeeze(2)
         frames_recon = torch.gather(x_recon, 2, frame_idx_selected).squeeze(2)
 
@@ -332,9 +331,9 @@ class Encoder(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        n_times_downsample = np.array([int(math.log2(d)) for d in self.opt.downsample])
+        n_times_downsample = np.array([int(math.log2(d)) for d in self.opt.downsample])  # [4, 4, 4] -> [2, 2, 2]
         self.conv_blocks = nn.ModuleList()
-        max_ds = max(n_times_downsample)  # .max()
+        max_ds = max(n_times_downsample) + 1  # .max()
         self.pre_vq_conv = SamePadConv3d(
             self.opt.enc_out_ch, self.opt.embedding_dim, 1, padding_type=self.opt.padding_type)
         self.conv_first = SamePadConv3d(

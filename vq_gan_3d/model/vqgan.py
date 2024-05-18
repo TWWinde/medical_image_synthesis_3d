@@ -56,11 +56,11 @@ class VQGAN(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        self.opt.downsample = [4, 4, 4]
-        self.opt.upsample = [4, 4, 4]
-        self.embedding_dim = opt.embedding_dim
+        self.opt.downsample = [2, 2, 2]
+        self.opt.upsample = [2, 2, 2]
+        self.embedding_dim = opt.embedding_dim  # 8
         self.n_codes = self.opt.n_codes
-        self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample))
+        self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample))  # 240*2*2**4
         self.encoder = Encoder(opt)
         self.decoder = Decoder(opt)
 
@@ -402,9 +402,8 @@ class Decoder(nn.Module):
             out_channels, self.opt.image_channel, kernel_size=3)
 
     def forward(self, x):
-        print(x.shape)
-        h = self.post_vq_conv(x)
-        print(h.shape)
+        # torch.Size([1, 8, 8, 64, 64])
+        h = self.post_vq_conv(x)  # torch.Size([1, 3840, 8, 64, 64])
         h = self.final_block(h)
         for i, block in enumerate(self.conv_blocks):
             h = block.up(h)

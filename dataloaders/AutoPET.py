@@ -10,7 +10,7 @@ PREPROCESSING_RescaleIntensity = tio.Compose([
 ])
 
 PREPROCESSING_CropOrPad = tio.Compose([
-    tio.CropOrPad(target_shape=(200, 200, 32))
+    tio.CropOrPad(target_shape=(256, 256, 32))
 ])
 
 TRAIN_TRANSFORMS = tio.Compose([

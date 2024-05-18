@@ -402,7 +402,9 @@ class Decoder(nn.Module):
             out_channels, self.opt.image_channel, kernel_size=3)
 
     def forward(self, x):
+        print(x.shape)
         h = self.post_vq_conv(x)
+        print(h.shape)
         h = self.final_block(h)
         for i, block in enumerate(self.conv_blocks):
             h = block.up(h)

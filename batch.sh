@@ -24,8 +24,6 @@
 module load cuda
 pyenv activate myenv #venv
 
-nvcc --version
-ls -l /usr/local/cuda/lib64/libcublas.so*
 
 # Run your python code
 

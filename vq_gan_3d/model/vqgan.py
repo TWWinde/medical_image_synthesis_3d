@@ -63,7 +63,7 @@ class VQGAN(nn.Module):
         self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample)-1)  # 240*2*2**4
         self.encoder = Encoder(opt)
         self.decoder = Decoder(opt)
-
+        self.l1_loss = torch.nn.L1Loss()
         self.codebook = Codebook(self.opt.n_codes, self.opt.embedding_dim,
                                  no_random_restart=self.opt.no_random_restart, restart_thres=self.opt.restart_thres)
 
@@ -114,7 +114,7 @@ class VQGAN(nn.Module):
         vq_output = self.codebook(z)
         x_recon = self.decoder(vq_output['embeddings'])
 
-        recon_loss = F.l1_loss(x_recon, x) * self.l1_weight
+        recon_loss = self.l1_loss(x_recon, x) * self.l1_weight
 
         # Selects one random 2D image from each 3D Image
         frame_idx = torch.randint(0, T, [B]).cuda()
@@ -154,14 +154,14 @@ class VQGAN(nn.Module):
                     frames)
                 for i in range(len(pred_image_fake) - 1):
                     image_gan_feat_loss += feat_weights * \
-                                           F.l1_loss(pred_image_fake[i], pred_image_real[i].detach(
+                                           self.l1_loss(pred_image_fake[i], pred_image_real[i].detach(
                                            )) * (self.image_gan_weight > 0)
             if self.video_gan_weight > 0:
                 logits_video_real, pred_video_real = self.video_discriminator(
                     x)
                 for i in range(len(pred_video_fake) - 1):
                     video_gan_feat_loss += feat_weights * \
-                                           F.l1_loss(pred_video_fake[i], pred_video_real[i].detach(
+                                           self.l1_loss(pred_video_fake[i], pred_video_real[i].detach(
                                            )) * (self.video_gan_weight > 0)
             gan_feat_loss = disc_factor * self.gan_feat_weight * (image_gan_feat_loss + video_gan_feat_loss)
 

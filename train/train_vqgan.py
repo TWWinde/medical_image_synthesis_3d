@@ -62,6 +62,7 @@ for epoch in range(start_epoch, opt.num_epochs):
         model.module.codebook.zero_grad()
         loss_G, losses_G_list, frames, frames_recon = model(data, "losses_G")
         loss_G, losses_G_list = loss_G.mean(), [loss.mean() if loss is not None else None for loss in losses_G_list]
+        optimizerG.zero_grad()
         loss_G.backward()
         optimizerG.step()
 
@@ -71,6 +72,7 @@ for epoch in range(start_epoch, opt.num_epochs):
             model.module.video_discriminator.zero_grad()
             loss_D, losses_D_list = model(data, "losses_D")
             loss_D, losses_D_list = loss_D.mean(), [loss.mean() if loss is not None else None for loss in losses_D_list]
+            optimizerD.zero_grad()
             loss_D.backward()
             optimizerD.step()
 

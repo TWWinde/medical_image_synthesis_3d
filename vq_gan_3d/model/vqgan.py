@@ -60,7 +60,7 @@ class VQGAN(nn.Module):
         self.opt.upsample = [2, 2, 2]
         self.embedding_dim = opt.embedding_dim  # 8
         self.n_codes = self.opt.n_codes
-        self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample))  # 240*2*2**4
+        self.opt.enc_out_ch = self.opt.n_hiddens * 2 ** (max(self.opt.downsample)-1)  # 240*2*2**4
         self.encoder = Encoder(opt)
         self.decoder = Decoder(opt)
 

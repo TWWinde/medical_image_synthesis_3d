@@ -35,7 +35,7 @@ def save_cropped(files, folder, crop_size, crop_2_block=False, length=32, stride
             nib.save(cropped_img, output_path)
 
 
-def process_images(source_folder, train_folder, test_folder, crop_size=(200, 200)):
+def process_images(source_folder, train_folder, test_folder, crop_size=(256, 256)):
 
     ct_train_folder = os.path.join(train_folder, 'ct')
     ct_test_folder = os.path.join(test_folder, 'ct')

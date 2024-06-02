@@ -66,12 +66,13 @@ for epoch in range(start_epoch, opt.num_epochs):
         optimizerG.step()
 
         # --- discriminator update ---#
-        model.module.image_discriminator.zero_grad()
-        model.module.video_discriminator.zero_grad()
-        loss_D, losses_D_list = model(data, "losses_D")
-        loss_D, losses_D_list = loss_D.mean(), [loss.mean() if loss is not None else None for loss in losses_D_list]
-        loss_D.backward()
-        optimizerD.step()
+        if cur_iter > opt.discriminator_iter_start:
+            model.module.image_discriminator.zero_grad()
+            model.module.video_discriminator.zero_grad()
+            loss_D, losses_D_list = model(data, "losses_D")
+            loss_D, losses_D_list = loss_D.mean(), [loss.mean() if loss is not None else None for loss in losses_D_list]
+            loss_D.backward()
+            optimizerD.step()
 
         # --- stats update ---#
 

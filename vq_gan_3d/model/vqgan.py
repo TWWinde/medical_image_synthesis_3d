@@ -166,7 +166,7 @@ class VQGAN(nn.Module):
             gan_feat_loss = disc_factor * self.gan_feat_weight * (image_gan_feat_loss + video_gan_feat_loss)
 
             commitment_loss = vq_output['commitment_loss']
-
+            '''
             self.log("train/g_image_loss", g_image_loss,
                      logger=True, on_step=True, on_epoch=True)
             self.log("train/g_video_loss", g_video_loss,
@@ -185,7 +185,7 @@ class VQGAN(nn.Module):
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log('train/perplexity', vq_output['perplexity'],
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
-
+            '''
             loss_G = recon_loss + aeloss + perceptual_loss + gan_feat_loss + commitment_loss
 
             return loss_G, [recon_loss,  aeloss, perceptual_loss, gan_feat_loss], frames, frames_recon
@@ -206,7 +206,7 @@ class VQGAN(nn.Module):
             discloss = disc_factor * \
                        (self.image_gan_weight * d_image_loss +
                         self.video_gan_weight * d_video_loss)
-
+            '''
             self.log("train/logits_image_real", logits_image_real.mean().detach(),
                      logger=True, on_step=True, on_epoch=True)
             self.log("train/logits_image_fake", logits_image_fake.mean().detach(),
@@ -221,7 +221,7 @@ class VQGAN(nn.Module):
                      logger=True, on_step=True, on_epoch=True)
             self.log("train/discloss", discloss, prog_bar=True,
                      logger=True, on_step=True, on_epoch=True)
-
+            '''
             return discloss, [d_image_loss, d_video_loss]
 
     def training_step(self, batch,  optimizer_idx):
@@ -239,11 +239,13 @@ class VQGAN(nn.Module):
     def validation_step(self, batch, batch_idx):
         x = batch['data']  # TODO: batch['stft']
         recon_loss, _, vq_output, perceptual_loss = self.forward(x)
+        '''
         self.log('val/recon_loss', recon_loss, prog_bar=True)
         self.log('val/perceptual_loss', perceptual_loss, prog_bar=True)
         self.log('val/perplexity', vq_output['perplexity'], prog_bar=True)
         self.log('val/commitment_loss',
                  vq_output['commitment_loss'], prog_bar=True)
+        '''
 
     def configure_optimizers(self):
         lr = self.opt.lr

@@ -78,7 +78,7 @@ class VQGAN(nn.Module):
             self.disc_loss = vanilla_d_loss
         elif self.opt.disc_loss_type == 'hinge':
             self.disc_loss = hinge_d_loss
-
+        self.global_step = self.opt.global_step
         self.perceptual_model = LPIPS().eval()
 
         self.image_gan_weight = self.opt.image_gan_weight

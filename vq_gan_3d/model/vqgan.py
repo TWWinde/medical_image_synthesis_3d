@@ -335,7 +335,7 @@ class Encoder(nn.Module):
         self.conv_blocks = nn.ModuleList()
         max_ds = max(n_times_downsample) + 1  # .max()
         self.pre_vq_conv = SamePadConv3d(
-            self.opt.enc_out_ch, self.opt.embedding_dim, 1, padding_type=self.opt.padding_type)
+            self.opt.enc_out_ch*2, self.opt.embedding_dim, 1, padding_type=self.opt.padding_type)  # *2
         self.conv_first = SamePadConv3d(
             self.opt.image_channel, self.opt.n_hiddens, kernel_size=3, padding_type=self.opt.padding_type)
 
